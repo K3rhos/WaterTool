@@ -35,3 +35,4 @@ A fully featured water rendering and simulation library for s&box. Featuring sha
 ### Advanced (Used for large ocean/infinite water rendering)
 2. Add a **WaterBodyRenderer** to render the surface
 3. Add a **WaterBodyBaker** to the same gameobject as the **WaterBodyRenderer**
+4. Press the **'Bake'** button to generate water bodies all around your terrain

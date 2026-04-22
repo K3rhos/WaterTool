@@ -37,7 +37,7 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 	[Property, Group("Coastal Fill"), Order(3)] public bool EnableCoastalFill { get; set; } = true;
 	[Property, Group("Coastal Fill"), Range(256.0f, 8192.0f)] public float CoastalFillMaxCellSize { get; set; } = 4096.0f;
 	[Property, Group("Coastal Fill"), Range(0.0f, 5000.0f)] public float CoastalFillPenetrationDistance { get; set; } = 192.0f;
-	[Property, Group("Coastal Fill"), Range(0.1f, 1.0f)] public float CoastalFillInlandThreshold { get; set; } = 0.55f;
+	[Property, Group("Coastal Fill"), Range(0.1f, 1.0f)] public float CoastalFillInlandThreshold { get; set; } = 1.0f;
 
 	[Property, ToggleGroup("Soundscape"), Order(4)] public bool Soundscape { get; set; } = false;
 	[Property, Group("Soundscape")] public Soundscape SoundscapeAsset { get; set; }
