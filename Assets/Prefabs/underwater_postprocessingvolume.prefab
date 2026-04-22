@@ -1,0 +1,158 @@
+{
+  "RootObject": {
+    "__guid": "1f5a9aa4-772b-4304-8cad-a2673bfe0733",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "underwater_postprocessingvolume",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 2,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [
+      {
+        "__type": "Sandbox.PostProcessVolume",
+        "__guid": "1f459f19-7cfe-4492-8aa0-4c13ffecdb0a",
+        "__enabled": false,
+        "Flags": 0,
+        "BlendDistance": 50,
+        "BlendWeight": 1,
+        "EditorPreview": false,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Priority": 1,
+        "SceneVolume": {
+          "Type": "Infinite",
+          "Sphere": {
+            "Center": "0,0,0",
+            "Radius": 10
+          },
+          "Box": {
+            "Mins": "-50,-50,-50",
+            "Maxs": "50,50,50"
+          },
+          "Capsule": {
+            "CenterA": "0,0,10",
+            "CenterB": "0,0,90",
+            "Radius": 10
+          }
+        }
+      },
+      {
+        "__type": "Sandbox.ColorAdjustments",
+        "__guid": "9540d44f-35e6-4570-90a1-81c24b6178c1",
+        "__enabled": true,
+        "Flags": 0,
+        "Blend": 1,
+        "Brightness": 0.8,
+        "Contrast": 1,
+        "HueRotate": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Saturation": 1
+      },
+      {
+        "__type": "Sandbox.Vignette",
+        "__guid": "82c791cc-150c-4ec0-ad38-b1cc6299e412",
+        "__enabled": true,
+        "Flags": 0,
+        "Center": "0.5,0.5",
+        "Color": "0.11528,0.32458,0.33953,1",
+        "Intensity": 0.3,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Roundness": 1,
+        "Smoothness": 1
+      },
+      {
+        "__type": "Sandbox.Blur",
+        "__guid": "e42249ae-76e7-4e06-88a0-1a2be1ca95fd",
+        "__enabled": true,
+        "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Size": 0.1
+      },
+      {
+        "__type": "RedSnail.WaterTool.WobbleEffect",
+        "__guid": "cea237ef-88b6-4378-965b-1806292c0d32",
+        "__enabled": true,
+        "Flags": 0,
+        "Amplitude": 1,
+        "Frequency": 20,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Speed": 2
+      },
+      {
+        "__type": "RedSnail.WaterTool.SimpleFog",
+        "__guid": "76058e55-aa9c-473a-a231-c32638589de2",
+        "__enabled": true,
+        "Flags": 0,
+        "Color": "0.09412,0.30196,0.37647,1",
+        "Intensity": 0.3,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Opacity": 0.9
+      }
+    ],
+    "Children": [],
+    "__properties": {
+      "NetworkInterpolation": true,
+      "TimeScale": 1,
+      "WantsSystemScene": true,
+      "Metadata": {},
+      "NavMesh": {
+        "Enabled": false,
+        "IncludeStaticBodies": true,
+        "IncludeKeyframedBodies": true,
+        "EditorAutoUpdate": false,
+        "AgentHeight": 64,
+        "AgentRadius": 16,
+        "AgentStepSize": 18,
+        "AgentMaxSlope": 40,
+        "ExcludedBodies": "",
+        "IncludedBodies": "",
+        "DeferGeneration": false,
+        "CustomBounds": false
+      }
+    },
+    "__variables": []
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

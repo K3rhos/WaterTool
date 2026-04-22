@@ -1,0 +1,35 @@
+int g_iWaterExclusionVolumeCount < Attribute("WaterExclusionVolumeCount"); Default(0); > ;
+StructuredBuffer<float4> g_vWaterExclusionVolumeRows < Attribute("WaterExclusionVolumeRows"); >;
+
+// Per-volume: row0 = (Forward, HalfExtents.x), row1 = (Up, HalfExtents.y), row2 = (Center, HalfExtents.z)
+float CheckWaterExclusionVolume(float3 pos)
+{
+    if (g_iWaterExclusionVolumeCount <= 0) return 0.0;
+
+    [loop]
+    for (int i = 0; i < g_iWaterExclusionVolumeCount; ++i)
+    {
+        int row = i * 3;
+
+        float4 row0 = g_vWaterExclusionVolumeRows[row + 0];
+        float4 row1 = g_vWaterExclusionVolumeRows[row + 1];
+        float4 row2 = g_vWaterExclusionVolumeRows[row + 2];
+
+        float3 vForward     = row0.xyz;
+        float3 vUp          = row1.xyz;
+        float3 vCenter      = row2.xyz;
+        float3 vHalfExtents = float3(row0.w, row1.w, abs(row2.w));
+        bool bIgnoreZAxis   = row2.w < 0.0;
+        float3 vRight       = cross(vUp, vForward);
+        float3 d            = pos - vCenter;
+
+        if (abs(dot(d, vForward)) <= vHalfExtents.x &&
+            abs(dot(d, vRight))   <= vHalfExtents.y &&
+            (bIgnoreZAxis || abs(dot(d, vUp)) <= vHalfExtents.z))
+        {
+            return 1.0;
+        }
+    }
+
+    return 0.0;
+}

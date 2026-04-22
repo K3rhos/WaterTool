@@ -1,0 +1,20 @@
+{
+  "WavesIntensity": 3,
+  "WavesSpeed": 50,
+  "WavesScale": 0.05,
+  "WavesDirection": "1,0.5",
+  "WavesOctaves": 3,
+  "WavesLacunarity": 2,
+  "WavesPersistence": 0.5,
+  "WavesSteepness": 0.5,
+  "SwellIntensity": 5,
+  "SwellSpeed": 400,
+  "SwellScale": 0.002,
+  "SwellDirection": "0.699999988,0.300000012",
+  "SwellOctaves": 2,
+  "SwellLacunarity": 1.8,
+  "SwellPersistence": 0.6,
+  "SwellSteepness": 0.3,
+  "__references": [],
+  "__version": 0
+}

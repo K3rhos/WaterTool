@@ -1,0 +1,68 @@
+// THIS FILE IS AUTO-GENERATED
+
+Layer0
+{
+	shader "shaders/advancedwater.shader"
+
+	//---- Rendering ----
+	F_DO_NOT_CAST_SHADOWS 1
+	F_RENDER_BACKFACES 1
+	F_TRANSLUCENT 1
+
+	//---- Caustics ----
+	g_flCausticsAnimSpeed "1.000"
+	g_flCausticsIntensity "0.000"
+	g_flCausticsScrollSpeed "0.010"
+	g_flCausticsThresholdMax "2.000"
+	g_flCausticsThresholdMin "0.300"
+	g_flCausticsTilingMultiplier "1.000"
+
+	//---- Depth ----
+	g_flDepthBlend "1.000"
+	g_flDepthFalloff "0.500"
+	g_flDepthMultiplier "0.700"
+	g_flShoreOpacity "0.000"
+	g_flShoreOpacityRange "10.000"
+	g_vDeepColor "[0.015686 0.050980 0.054902 0.862745]"
+	g_vShallowColor "[0.247059 0.400000 0.423529 0.588235]"
+
+	//---- Foam ----
+	g_flFoamCoverage "0.500"
+	g_flFoamDepth "50.000"
+	g_flFoamEdgeScale "5.000"
+	g_flFoamEdgeSpeed "0.100"
+	g_flFoamEdgeWarp "0.500"
+	g_flFoamFalloff "1.500"
+	g_flFoamIntensity "0.000"
+	g_flFoamNoiseScale "20.000"
+	g_flFoamNoiseSpeed "0.300"
+	g_flFoamSoftness "1.500"
+	g_vFoamColor "[1.000000 1.000000 1.000000 1.000000]"
+
+	//---- Fog ----
+	g_bFogEnabled "1"
+
+	//---- Fresnel ----
+	g_flFresnelBias "0.200"
+	g_flFresnelPower "5.000"
+	g_vFresnelColor "[0.478431 0.647059 0.764706 1.000000]"
+
+	//---- Normals ----
+	g_flNormalStrength "0.060"
+	g_flSpeedMainNormal "50.000"
+	g_flSpeedSecondNormal "-25.000"
+	MainNormal "textures/water/water_normal.jpg"
+	SecondNormal "textures/water/water_normal.jpg"
+
+	//---- Reflection ----
+	g_flFoamReflectionStrength "0.000"
+	g_flReflectionStepSize "500.000"
+	g_flReflectionStrength "1.000"
+
+	//---- Refraction ----
+	g_flRefractionStrength "0.100"
+
+	//---- Surface ----
+	g_flContrast "1.300"
+	g_flRoughness "0.000"
+}

@@ -1,0 +1,86 @@
+// Single combined buffer layout:
+//   float4[0 .. MAX_HULLS*6-1]  : per-hull metadata (6 rows each)
+//     rows 0-3 : WorldToLocal matrix (row-major)
+//     row  4   : (vertStart, triCount, aabbMin.x, aabbMin.y)   -- vertStart is absolute index into THIS buffer
+//     row  5   : (aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z)
+//   float4[MAX_HULLS*6 ..]      : triangle data — every 3 float4s = one triangle (v0.xyz,0)(v1.xyz,0)(v2.xyz,0) in model local space
+int g_iWaterHullExclusionCount < Attribute("WaterHullExclusionCount"); Default(0); >;
+StructuredBuffer<float4> g_vWaterHullExclusionData < Attribute("WaterHullExclusionData"); >;
+
+// Möller–Trumbore intersection for a ray shot in the local +X direction.
+bool RayHitsTriLocalX( float3 orig, float3 v0, float3 v1, float3 v2 )
+{
+    float3 e1 = v1 - v0;
+    float3 e2 = v2 - v0;
+
+    // pvec = cross( (1,0,0), e2 ) = (0, -e2.z, e2.y)
+    float3 pvec = float3( 0.0f, -e2.z, e2.y );
+    float det = dot( e1, pvec );
+
+    if ( abs( det ) < 1e-7f ) return false;
+
+    float invDet = 1.0f / det;
+    float3 tvec = orig - v0;
+
+    float u = dot( tvec, pvec ) * invDet;
+    if ( u < 0.0f || u > 1.0f ) return false;
+
+    float3 qvec = cross( tvec, e1 );
+    float v = qvec.x * invDet; // dot( (1,0,0), qvec )
+    if ( v < 0.0f || u + v > 1.0f ) return false;
+
+    float t = dot( e2, qvec ) * invDet;
+    return t > 0.0f;
+}
+
+float CheckWaterHullExclusion( float3 worldPos )
+{
+    if ( g_iWaterHullExclusionCount <= 0 ) return 0.0f;
+
+    [loop]
+    for ( int h = 0; h < g_iWaterHullExclusionCount; ++h )
+    {
+        int meta = h * 6;
+
+        float4x4 worldToLocal = float4x4(
+            g_vWaterHullExclusionData[meta + 0],
+            g_vWaterHullExclusionData[meta + 1],
+            g_vWaterHullExclusionData[meta + 2],
+            g_vWaterHullExclusionData[meta + 3]
+        );
+
+        float4 row4 = g_vWaterHullExclusionData[meta + 4];
+        float4 row5 = g_vWaterHullExclusionData[meta + 5];
+
+        int    vertStart = (int)row4.x;
+        int    triCount  = (int)row4.y;
+        float3 aabbMin   = float3( row4.z, row4.w, row5.x );
+        float3 aabbMax   = float3( row5.y, row5.z, row5.w );
+
+        float3 localPos = mul( worldToLocal, float4( worldPos, 1.0f ) ).xyz;
+
+        // AABB early-out
+        if ( any( localPos < aabbMin ) || any( localPos > aabbMax ) )
+            continue;
+
+        // Odd-hit-count: shoot a ray in local +X and count triangle hits
+        int hits = 0;
+
+        [loop]
+        for ( int i = 0; i < triCount; ++i )
+        {
+            int b = vertStart + i * 3;
+            float3 tv0 = g_vWaterHullExclusionData[b + 0].xyz;
+            float3 tv1 = g_vWaterHullExclusionData[b + 1].xyz;
+            float3 tv2 = g_vWaterHullExclusionData[b + 2].xyz;
+
+            if ( RayHitsTriLocalX( localPos, tv0, tv1, tv2 ) )
+                hits++;
+        }
+
+        if ( (hits & 1) == 1 )
+            return 1.0f;
+    }
+
+    return 0.0f;
+}
