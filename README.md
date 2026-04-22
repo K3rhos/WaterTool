@@ -7,7 +7,7 @@ A fully featured water rendering library for s&box. Featuring shader driven wate
 ## Features
 
 ### Rendering
-- **Clipmap water surface** Compute-shader driven mesh that tiles out from the camera for infinite-looking water with no LOD pop-in
+- **Clipmap water surface** Compute shader driven mesh that tiles out from the camera for infinite looking water with LODs
 - **WaterDefinition profiles** Asset based wave configuration for Ocean, Lake, River, Pool, or custom types. Controls detail waves and swell waves independently (intensity, speed, scale, direction, octaves, lacunarity, persistence, steepness)
 - **Multi-octave Gerstner waves** Evaluates wave displacement and velocity at any world position for use in gameplay and physics
 
