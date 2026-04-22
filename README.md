@@ -1,6 +1,6 @@
 # WaterTool
 
-A fully featured water rendering and simulation library for s&box. Featuring shader driven water surfaces with physically based buoyancy, waves simulation, and hull mesh exclusion.
+A fully featured water rendering library for s&box. Featuring shader driven water surfaces with physically based buoyancy, waves simulation, and hull mesh exclusion.
 
 ---
 
