@@ -44,6 +44,8 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 	[Property, Group("Soundscape")] public MixerHandle SoundscapeTargetMixer { get; set; }
 	[Property, Group("Soundscape")] public bool SoundscapeStayActiveOnExit { get; set; } = true;
 	[Property, Group("Soundscape"), Range(0.0f, 2.0f)] public float SoundscapeVolume { get; set; } = 1.0f;
+	
+	[Property, Group("Miscellaneous")] public bool ExcludeMeshGeometry { get; set; } = false;
 
 
 
@@ -126,6 +128,9 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 				continue;
 
 			if (collider.GameObject.Tags.Has(BakedTag))
+				continue;
+			
+			if (ExcludeMeshGeometry && collider is not Terrain)
 				continue;
 
 			_solidColliders.Add(collider);
@@ -329,6 +334,9 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 
 	private bool IsPointInsideSolidMeshOnly(Vector3 _WorldPoint)
 	{
+		if (ExcludeMeshGeometry)
+			return false;
+		
 		var probe = Scene.Trace
 			.Sphere(SolidProbeRadius, _WorldPoint, _WorldPoint)
 			.WithoutTags(BakedTag)
@@ -350,6 +358,9 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 
 	private bool HasOddHitCount(Vector3 _Start, Vector3 _Direction)
 	{
+		if (ExcludeMeshGeometry)
+			return false;
+		
 		var end = _Start + _Direction.Normal * _insideTraceDistance;
 
 		var hits = Scene.Trace
@@ -384,6 +395,9 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 
 	private bool BoxOverlapsNonTerrainSolid(BBox _LocalBox)
 	{
+		if (ExcludeMeshGeometry)
+			return false;
+		
 		var center = WorldTransform.PointToWorld(_LocalBox.Center);
 
 		var hits = Scene.Trace
