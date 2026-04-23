@@ -41,9 +41,9 @@ public partial class WaterManager
 
 		foreach (WaterQuad quad in Current?.Quads ?? [])
 		{
-			if (!quad.ParticipatesInWaterQueries || !quad.HullCollider.IsValid())
+			if (!quad.HullCollider.IsValid())
 				continue;
-
+			
 			var local = quad.HullCollider.WorldTransform.PointToLocal(position);
 			bool insideXY;
 
@@ -94,7 +94,7 @@ public partial class WaterManager
 
 		foreach (WaterQuad quad in Current.Quads)
 		{
-			if (!quad.ParticipatesInWaterQueries)
+			if (!quad.IsValid() || !quad.Active)
 				continue;
 
 			if (!IsInsideHull(quad.HullCollider, position))

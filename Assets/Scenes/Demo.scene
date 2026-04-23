@@ -303,7 +303,7 @@
       "Enabled": true,
       "NetworkMode": 2,
       "NetworkFlags": 0,
-      "NetworkOrphaned": 0,
+      "NetworkOrphaned": 1,
       "NetworkTransmit": true,
       "OwnerTransfer": 1,
       "Components": [
@@ -341,8 +341,8 @@
           "EnablePressing": true,
           "EyeDistanceFromTop": 8,
           "FootstepMixer": {
-            "Name": "unknown",
-            "Id": "00000000-0000-0000-0000-000000000000"
+            "Name": "game",
+            "Id": "e86d21be-9a19-489f-8c80-7332641b7349"
           },
           "FootstepVolume": 1,
           "HideBodyInFirstPerson": true,
@@ -430,8 +430,8 @@
           "StepUpHeight": 18
         },
         {
-          "__type": "Sandbox.Movement.MoveModeSwim",
-          "__guid": "4c456ebd-bab2-4995-be83-1dbc4997e9e8",
+          "__type": "RedSnail.WaterTool.MoveModeSwimFixed",
+          "__guid": "390270dc-c36b-401a-b1ff-357f46080d94",
           "__enabled": true,
           "Flags": 0,
           "OnComponentDestroy": null,
@@ -457,6 +457,18 @@
           "OnComponentUpdate": null,
           "Priority": 5,
           "Speed": 1
+        },
+        {
+          "__type": "Sandbox.Movement.SitMoveMode",
+          "__guid": "7d9522c9-a535-4e8e-bba7-bd1744a03981",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
         },
         {
           "__type": "Sandbox.Dresser",
@@ -665,7 +677,6 @@
               "BaseCellSize": 32,
               "CellsPerRing": 256,
               "Depth": 300,
-              "EnabledForRendering": true,
               "FollowCameraForClipmap": true,
               "Length": 25000,
               "Material": "materials/oceanwater.vmat",
@@ -800,7 +811,7 @@
                     },
                     {
                       "__type": "Sandbox.HullCollider",
-                      "__guid": "1220c769-7769-4ffe-a8f7-613a21d6d9a6",
+                      "__guid": "920fac36-ea87-4094-b55b-815574a29236",
                       "__enabled": true,
                       "Flags": 1,
                       "BoxSize": "6250,6250,600",
@@ -12391,7 +12402,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "2a4c6a53-2330-491e-83a1-ba8a2c299632",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "50cf814a-7e7c-4651-b886-27edf5f41b82",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "446db9e4-369c-4be5-b227-2392f2ca88ef",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "5479b9fe-7b6d-4d74-88a4-026772d7c395"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "5479b9fe-7b6d-4d74-88a4-026772d7c395",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "d933fb05-1581-4830-8e74-57e9f112843a",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "4e1c56fa-1c6b-4d49-91c9-674355688c89"
           }
         },
         {
@@ -12419,7 +12432,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "8d82c842-259d-4beb-85c7-fa0aa27a2911",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "d9127437-2d74-478e-bd05-4ccc1e65beae",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "08e54196-181e-4b14-b4e7-ae14f6998500",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "5b2228bd-6be3-4491-b25f-a0e1a7af4962"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "5b2228bd-6be3-4491-b25f-a0e1a7af4962",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "c4f780ea-3e14-4582-b085-883f9ff3547d",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "b856299f-e555-40ad-b3d3-62e6d2d99814"
           }
         },
         {
@@ -12447,7 +12462,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "f668fbcc-9c53-451c-9d6d-72d18ad2e67d",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "e43eb0b3-a3d7-4184-a8d8-4435b5532705",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "f6b900b5-bdce-4482-ad26-5003e90c796e",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "6631e2c0-57cd-4e55-8869-3269a65deb1d"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "6631e2c0-57cd-4e55-8869-3269a65deb1d",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "f4a1ddc2-7d83-48ee-b11a-f74235b14e2e",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "43152cae-befb-44c4-abcb-fa9b1c5e874a"
           }
         },
         {
@@ -12475,7 +12492,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "ca50fcb9-5046-4e7e-9ccf-d6c5a6fccbe2",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "12db4e88-159b-4416-b2ff-df3d4be2c4f9",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "16ad9846-e83c-4ab6-bf36-dbe2f8d5a61b",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "ddd1ec0f-a2ed-42f2-baae-1cd78d22cec7"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "ddd1ec0f-a2ed-42f2-baae-1cd78d22cec7",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "27769684-87dc-42d2-9765-588d5fcc1796",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "6e3cac29-9b5a-4e64-9898-19bb421ae2a5"
           }
         },
         {
@@ -12503,7 +12522,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "51042828-917c-41b0-8ff3-488a903988fa",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "a9f77bf0-f3c2-46f5-91e2-ebc648aad69e",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "48bd5733-1502-4664-b560-8a57c856351f",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "040ab544-5938-4103-9dab-b612bae4f087"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "040ab544-5938-4103-9dab-b612bae4f087",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "dd1d4fdd-28a2-4f27-9641-2904566f70bc",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "c3626a1c-3625-4d65-84cd-9709a0467860"
           }
         },
         {
@@ -12636,7 +12657,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "17ca3d28-ff38-45b7-822e-955f8ff67418",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "d4b0339a-56a3-4fba-97d6-d81fb26c9e1a",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "6ef7fe9c-f072-4f37-b68f-b16972dffcab",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "7988eec9-5622-4c1f-95db-386a55f6b99a"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "7988eec9-5622-4c1f-95db-386a55f6b99a",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "6c1ceb53-9887-44e6-b6c1-311b3490c419",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "c4fb0ce1-bfbf-4fea-ad1b-5cdca59a490a"
           }
         },
         {
@@ -12742,7 +12765,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "a30ffe2f-27c1-4c7c-b605-86b79854c711",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "43fe7377-c882-4d22-8c78-8b9bbf9d64cd",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "ff62c322-2704-4a15-96d6-854cff28cb56",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "ed27c910-9585-41b3-9905-2cfe3c6454e6"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "ed27c910-9585-41b3-9905-2cfe3c6454e6",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "69417937-df95-41f2-a618-d49ea281bbcc",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "cbb31f9b-17e8-4d55-8022-7b6036f3fb56"
           }
         },
         {
@@ -12829,7 +12854,9 @@
             "570331e7-deef-4532-9943-c2e9c76d126a": "e0a9e47a-5247-461a-900a-32c5a88a937a",
             "63e564b7-e42b-481c-a40a-0df4523b08a6": "0f014dfb-3c1b-454a-8e62-f69d0dfd5516",
             "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "06ef39f2-6912-40dd-aaf8-97680ba01241",
-            "440d8765-5a2d-40ef-80e5-009026de8e65": "60977884-bde5-417a-9ce1-a3246b46e2b9"
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "60977884-bde5-417a-9ce1-a3246b46e2b9",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "4430ab3e-4c72-46d9-936e-416514a59a23",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "30ab7b59-389d-4dd8-98ea-98d1b9acf3b0"
           }
         }
       ]
@@ -13266,7 +13293,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -13739,7 +13765,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -14212,7 +14237,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -14685,7 +14709,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -15158,7 +15181,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -15631,7 +15653,6 @@
               "OnComponentStart": null,
               "OnComponentUpdate": null,
               "TextureTilingMultiplier": 1,
-              "UseForWaterQueries": true,
               "WaterType": "Pool",
               "Width": 240
             },
@@ -15708,7 +15729,6 @@
           "OnComponentStart": null,
           "OnComponentUpdate": null,
           "TextureTilingMultiplier": 1,
-          "UseForWaterQueries": true,
           "WaterType": "Lake",
           "Width": 2500
         },
@@ -15717,7 +15737,7 @@
           "__guid": "b57315af-8d45-486f-b27a-03063f1a6f2b",
           "__enabled": true,
           "Flags": 1,
-          "BoxSize": "2500,2500,300",
+          "BoxSize": "0,0,0",
           "Center": "0,0,-150",
           "ColliderFlags": 0,
           "Elasticity": null,
@@ -16006,17 +16026,17 @@
       "Sandbox.MovieMaker.MovieRecorderSystem": {
         "DisableClientRecording": false
       },
-      "Sandbox.Clutter.ClutterGridSystem": {
-        "Storage": {
-          "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
-        }
-      },
       "RedSnail.WaterTool.WaterManager": {
         "UnderwaterPostProcessVolume": {
           "_type": "component",
           "component_id": "d8810785-58c5-4ca2-b2d6-717e73dc3609",
           "go": "c0f1d3d3-c894-42a2-982d-88bb8785424e",
           "component_type": "PostProcessVolume"
+        }
+      },
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
         }
       }
     }

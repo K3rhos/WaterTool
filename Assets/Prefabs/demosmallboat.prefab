@@ -11,7 +11,7 @@
     "Enabled": true,
     "NetworkMode": 2,
     "NetworkFlags": 0,
-    "NetworkOrphaned": 0,
+    "NetworkOrphaned": 1,
     "NetworkTransmit": true,
     "OwnerTransfer": 1,
     "Components": [
@@ -72,7 +72,7 @@
         "__guid": "63e564b7-e42b-481c-a40a-0df4523b08a6",
         "__enabled": true,
         "Flags": 0,
-        "AngularDamping": 0,
+        "AngularDamping": 1,
         "EnableImpactDamage": true,
         "EnhancedCcd": false,
         "Gravity": true,
@@ -123,6 +123,31 @@
         "WaveTransportForce": 40
       },
       {
+        "__type": "RedSnail.WaterTool.BoatController",
+        "__guid": "e00124ac-1ae6-40c8-8928-1ef244875b96",
+        "__enabled": true,
+        "Flags": 0,
+        "ExitPoint": null,
+        "EyePosition": null,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "ReverseForce": 80000,
+        "SeatPosition": {
+          "_type": "gameobject",
+          "go": "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37"
+        },
+        "Stability": 50000,
+        "TerminalSpeed": 800,
+        "ThrustForce": 200000,
+        "TooltipIcon": "airline_seat_recline_normal",
+        "TooltipTitle": "Drive",
+        "TurnForce": 60000
+      },
+      {
         "__type": "RedSnail.WaterTool.HullWaterExclusionVolume",
         "__guid": "440d8765-5a2d-40ef-80e5-009026de8e65",
         "__enabled": true,
@@ -135,7 +160,26 @@
         "OnComponentUpdate": null
       }
     ],
-    "Children": [],
+    "Children": [
+      {
+        "__guid": "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Seat",
+        "Position": "0,9,-9",
+        "Rotation": "0,-0,-0.707106769,0.707106769",
+        "Scale": "1,1,1",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 2,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [],
+        "Children": []
+      }
+    ],
     "__properties": {
       "NetworkInterpolation": true,
       "TimeScale": 1,

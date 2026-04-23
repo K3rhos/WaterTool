@@ -9,7 +9,7 @@ namespace RedSnail.WaterTool;
 [Icon("water"), Group("Water"), Title("Water Quad")]
 public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.DontExecuteOnServer
 {
-#pragma warning disable CS0649
+	#pragma warning disable CS0649
 
 	private struct WaterVertex
 	{
@@ -20,7 +20,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		[VertexLayout.Color] public Color Color;
 	}
 
-#pragma warning restore CS0649
+	#pragma warning restore CS0649
 
 	// GPU buffers (per-quad, owned here — WaterQuadManager owns SceneCustomObject and ComputeShader)
 	private GpuBuffer<WaterVertex> m_VertexBuffer;
@@ -32,7 +32,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private GpuBuffer<Vector4> m_WaterExclusionVolumeBuffer;
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
 	private GpuBuffer<Vector4> m_HullExclusionBuffer;
-	private Vector4[] m_HullExclusionData = new Vector4[HULL_EXCLUSION_META_SIZE + MAX_HULL_EXCLUSION_TRIS * 3];
+	private readonly Vector4[] m_HullExclusionData = new Vector4[HULL_EXCLUSION_META_SIZE + MAX_HULL_EXCLUSION_TRIS * 3];
 
 	private HullCollider m_HullCollider;
 	private int m_LastConfigHash;
@@ -40,7 +40,10 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private float m_LastLength;
 	private float m_LastDepth;
 	private bool m_LastIsCircleShape;
-	private bool m_LastUseForWaterQueries;
+	private int m_LastNumCircleSegments;
+	private Vector3 m_LastHullCenter;
+	private Vector3 m_LastHullBoxSize;
+	private Material m_LastMaterial;
 
 	private const float BASE_TILE_SIZE = 100.0f;
 
@@ -54,20 +57,20 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private const int HULL_EXCLUSION_META_SIZE = MAX_HULL_EXCLUSION_VOLUMES * HULL_EXCLUSION_META_ROWS;
 	private const int MAX_HULL_EXCLUSION_TRIS = 16384;
 
-	[Property, Group("General"), Order(0)] public Material Material { get; set; }
-	[Property, Group("General"), Order(0)] public float Width { get; set; } = 5000.0f;
-	[Property, Group("General"), Order(0)] public float Length { get; set; } = 5000.0f;
-	[Property, Group("General"), Order(0)] public float Depth { get; set; } = 300.0f;
-	[Property, Group("General"), Order(0)] public bool CircleShape { get; set; } = false;
 	[Property, Group("General"), Order(0)] public WaterBodyType WaterType { get; set; } = WaterBodyType.Ocean;
-	[Property, Group("General"), Order(1)] public bool UseForWaterQueries { get; set; } = true;
+	[Property, Group("General"), Order(0)] public Material Material { get; set; }
+	[Property, Group("General"), Step(1), Order(0)] public float Width { get; set; } = 5000.0f;
+	[Property, Group("General"), Step(1), Order(0)] public float Length { get; set; } = 5000.0f;
+	[Property, Group("General"), Step(1), Order(0)] public float Depth { get; set; } = 300.0f;
 
-	[Property, Group("Clipmap"), Order(2)] public float BaseCellSize { get; set { field = value.Clamp(8, 4096); } } = 8.0f;
-	[Property, Group("Clipmap"), Order(2), Range(16, 512)] public int CellsPerRing { get; set { field = value.Clamp(16, 512); } } = 64;
-	[Property, Group("Clipmap"), Order(2), Range(4, 32)] public int CircleSegments { get; set { field = value.Clamp(4, 32); } } = 16;
-	[Property, Group("Clipmap"), Order(2)] public bool FollowCameraForClipmap { get; set; } = true;
+	[Property, Group("Clipmap"), Order(2)] public float BaseCellSize { get; set { field = value.Clamp(8, 4096); } } = 32.0f;
+	[Property, Group("Clipmap"), Order(2), Range(16, 512)] public int CellsPerRing { get; set { field = value.Clamp(16, 512); } } = 256;
+	[Property(Title = "Use Camera For Clipmap"), Group("Clipmap"), Order(2)] public bool FollowCameraForClipmap { get; set; } = true;
+	
+	[Property, Group("Shape"), Order(3)] public bool CircleShape { get; set; } = false;
+	[Property, Group("Shape"), Order(3), Range(5, 32), ShowIf(nameof(CircleShape), true)] public int CircleSegments { get; set { field = value.Clamp(5, 32); } } = 16;
 
-	[Property, Group("Texture"), Order(3), Range(0.1f, 2.0f)] public float TextureTilingMultiplier { get; set; } = 1.0f;
+	[Property, Group("Texture"), Order(4), Range(0.1f, 2.0f)] public float TextureTilingMultiplier { get; set; } = 1.0f;
 
 	public HullCollider HullCollider => m_HullCollider;
 	private int VerticesPerRing => (CellsPerRing + 1) * (CellsPerRing + 1);
@@ -76,9 +79,6 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	protected override void OnEnabled()
 	{
-		if (Material == null)
-			return;
-
 		RefreshRenderBuffers();
 		UpdateColliderState();
 
@@ -86,7 +86,8 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		m_LastLength = Length;
 		m_LastDepth = Depth;
 		m_LastIsCircleShape = CircleShape;
-		m_LastUseForWaterQueries = UseForWaterQueries;
+		m_LastNumCircleSegments = CircleSegments;
+		m_LastMaterial = Material;
 
 		WaterManager.Current?.Register(this);
 	}
@@ -114,12 +115,18 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		if (WaterManager.Current == null)
 			return;
 
+		// Material was just assigned after the component was already enabled, register now.
+		if (m_LastMaterial == null && Material != null)
+			WaterManager.Current.Register(this);
+
+		m_LastMaterial = Material;
+
 		if (Material == null)
 			return;
 
 		UpdateBuffers();
 
-		if (Width != m_LastWidth || Length != m_LastLength || Depth != m_LastDepth || CircleShape != m_LastIsCircleShape || UseForWaterQueries != m_LastUseForWaterQueries)
+		if (Width != m_LastWidth || Length != m_LastLength || Depth != m_LastDepth || CircleShape != m_LastIsCircleShape || m_LastNumCircleSegments != CircleSegments)
 		{
 			UpdateColliderState();
 
@@ -127,7 +134,24 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			m_LastLength = Length;
 			m_LastDepth = Depth;
 			m_LastIsCircleShape = CircleShape;
-			m_LastUseForWaterQueries = UseForWaterQueries;
+			m_LastNumCircleSegments = CircleSegments;
+		}
+
+		if (m_HullCollider.IsValid())
+		{
+			if (m_HullCollider.Center != m_LastHullCenter)
+			{
+				m_HullCollider.Center = m_LastHullCenter;
+				
+				Log.Warning("[WaterTool] Do not use S&box gizmos to control the size of the water quad, please use the intended: Width, Length & Depth property in the editor!");
+			}
+
+			if (m_HullCollider.BoxSize != m_LastHullBoxSize)
+			{
+				m_HullCollider.BoxSize = m_LastHullBoxSize;
+				
+				Log.Warning("[WaterTool] Do not use S&box gizmos to control the size of the water quad, please use the intended: Width, Length & Depth property in the editor!");
+			}
 		}
 
 		UpdateShaderAttributes();
@@ -160,9 +184,9 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			Gizmo.Draw.LineBBox(m_HullCollider.LocalBounds);
 		}
 	}
-
-
-
+	
+	
+	
 	public void CacheCommandList(CommandList _CommandList)
 	{
 		m_CommandList ??= _CommandList;
@@ -338,12 +362,10 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	internal bool HasValidBuffers => m_VertexBuffer.IsValid() && m_IndexBuffer.IsValid();
 
-	internal bool ParticipatesInRendering => Material is not null;
-
-	internal bool ParticipatesInWaterQueries => UseForWaterQueries;
-
-
-
+	internal bool ParticipatesInRendering => Material.IsValid();
+	
+	
+	
 	internal BBox GetWorldBounds2D()
 	{
 		Vector3 right = WorldRotation.Right * (Length / 2.0f);
@@ -457,15 +479,8 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	private void UpdateColliderState()
 	{
-		if (!UseForWaterQueries)
-		{
-			m_HullCollider?.Destroy();
-			m_HullCollider = null;
-			return;
-		}
-
 		m_HullCollider = GetOrAddComponent<HullCollider>();
-		m_HullCollider.Flags = ComponentFlags.Hidden;
+		m_HullCollider.Flags |= ComponentFlags.Hidden;
 		m_HullCollider.Static = true;
 
 		m_HullCollider.Type = CircleShape ? HullCollider.PrimitiveType.Cylinder : HullCollider.PrimitiveType.Box;
@@ -483,6 +498,9 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		{
 			m_HullCollider.BoxSize = new Vector3(Width, Length, Depth);
 		}
+		
+		m_LastHullCenter = m_HullCollider.Center;
+		m_LastHullBoxSize = m_HullCollider.BoxSize;
 
 		m_HullCollider.IsTrigger = true;
 

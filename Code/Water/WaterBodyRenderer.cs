@@ -49,24 +49,23 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 	private readonly Vector4[] m_WaterInclusionVolumeData = new Vector4[MAX_WATER_INCLUSION_VOLUMES * WATER_INCLUSION_VOLUME_ROWS];
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
 	private GpuBuffer<Vector4> m_HullExclusionBuffer;
-	private Vector4[] m_HullExclusionData = new Vector4[HULL_EXCLUSION_META_SIZE + MAX_HULL_EXCLUSION_TRIS * 3];
+	private readonly Vector4[] m_HullExclusionData = new Vector4[HULL_EXCLUSION_META_SIZE + MAX_HULL_EXCLUSION_TRIS * 3];
 
-	[Property, Group("General"), Order(0)] public Material Material { get; set; }
 	[Property, Group("General"), Order(0)] public WaterBodyType WaterType { get; set; } = WaterBodyType.Ocean;
-	[Property, Group("General"), Order(0)] public float Width { get; set; } = 50000.0f;
-	[Property, Group("General"), Order(0)] public float Length { get; set; } = 50000.0f;
+	[Property, Group("General"), Order(0)] public Material Material { get; set; }
+	[Property, Group("General"), Order(0)] public float Width { get; set; } = 10000.0f;
+	[Property, Group("General"), Order(0)] public float Length { get; set; } = 10000.0f;
 	[Property, Group("General"), Order(0)] public float Depth { get; set; } = 300.0f;
-	[Property, Group("General"), Order(0)] public bool UseHybridInclusionBounds { get; set; } = true;
-	[Property, Group("General"), Order(0)] public bool EnabledForRendering { get; set; } = true;
+	[Property(Title = "Infinite Rendering"), Group("General"), Order(0)] public bool UseHybridInclusionBounds { get; set; } = true;
 	[Property, Group("Clipmap"), Order(1)] public float BaseCellSize { get; set; } = 8.0f;
 	[Property, Group("Clipmap"), Order(1), Range(16, 512)] public int CellsPerRing { get; set; } = 64;
-	[Property, Group("Clipmap"), Order(1)] public bool FollowCameraForClipmap { get; set; } = true;
+	[Property(Title = "Use Camera For Clipmap"), Group("Clipmap"), Order(1)] public bool FollowCameraForClipmap { get; set; } = true;
 	[Property, Group("Texture"), Order(2), Range(0.1f, 2.0f)] public float TextureTilingMultiplier { get; set; } = 1.0f;
 
 	private int VerticesPerRing => (CellsPerRing + 1) * (CellsPerRing + 1);
 	private float OuterExtent => CellsPerRing * BaseCellSize * (1 << (ComputeRingCount() - 1));
 
-	internal bool ParticipatesInRendering => Active && EnabledForRendering && Material is not null;
+	internal bool ParticipatesInRendering => Active && Material.IsValid();
 	internal bool HasValidBuffers => m_VertexBuffer.IsValid() && m_IndexBuffer.IsValid();
 
 	protected override void OnEnabled()
@@ -346,7 +345,7 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 
 	private int ComputeConfigHash()
 	{
-		return HashCode.Combine(Width, Length, BaseCellSize, CellsPerRing, EnabledForRendering);
+		return HashCode.Combine(Width, Length, BaseCellSize, CellsPerRing);
 	}
 
 	private int ComputeRingCount()

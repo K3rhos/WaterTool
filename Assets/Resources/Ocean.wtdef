@@ -1,6 +1,6 @@
 {
   "WavesIntensity": 4,
-  "WavesSpeed": 0.3,
+  "WavesSpeed": 2,
   "WavesScale": 0.05,
   "WavesDirection": "1,0.5",
   "WavesOctaves": 3,

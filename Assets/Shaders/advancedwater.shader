@@ -151,7 +151,6 @@ PS
 
 	// ── Textures ──
     Texture2D g_tFrameBufferCopyTexture < Attribute("FrameBufferCopyTexture"); SrgbRead(false); > ;
-    TextureCube g_tSkyTexture < Attribute("SkyTexture"); SrgbRead(false); > ;
 
 	CreateInputTexture2D( MainNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile( "materials/dev/white_color.tga" ) );
 	CreateInputTexture2D( SecondNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile( "materials/dev/white_color.tga" ) );
@@ -205,12 +204,11 @@ PS
 	float g_flFresnelPower < UiType( Slider ); UiGroup( "Fresnel,0/,0/0" ); Default1( 5 ); Range1( 0.5, 10 ); >;
 	float4 g_vFresnelColor < UiType( Color ); UiGroup( "Fresnel,0/,0/0" ); Default4( 0.60, 0.85, 0.90, 1.00 ); >;
 
-	// ── Reflection ──
-	float g_flReflectionStrength < UiType( Slider ); UiGroup( "Reflection,0/,0/0" ); Default1( 0.5 ); Range1( 0, 1 ); >;
-	float g_flFoamReflectionStrength < UiType( Slider ); UiGroup( "Reflection,0/,0/0" ); Default1( 0 ); Range1( 0, 1 ); >;
-    TextureCube g_tSkyReflection < Attribute("SkyReflection"); SrgbRead(false); > ;
-    bool g_bInvertedDirection < UiGroup("Reflection,0/,30/10"); Default1(0); > ;
-    float g_flReflectionStepSize < UiType(Slider); UiGroup("Reflection,0/,0/0"); Default1(200.0); Range1(10, 2000); > ;
+    // ── SSR Reflection ──
+    bool g_bUseScreenSpaceReflection < UiGroup("Reflection,0/,0/10"); Default1(1); > ;
+	float g_flReflectionStrength < UiType( Slider ); UiGroup( "Reflection,0/,0/20" ); Default1( 0.5 ); Range1( 0.1, 1 ); >;
+	float g_flFoamReflectionStrength < UiType( Slider ); UiGroup( "Reflection,0/,0/30" ); Default1( 0 ); Range1( 0, 1 ); >;
+    float g_flReflectionStepSize < UiType(Slider); UiGroup("Reflection,0/,0/40"); Default1(200.0); Range1(10, 2000); > ;
 
 	// ── Surface ──
     float g_flRoughness < UiType(Slider); UiGroup("Surface,0/,0/0"); Default1(0); Range1(0, 1); > ;
@@ -498,7 +496,8 @@ PS
 
 
 
-        // ── Reflections (SSR only) ─────────────────────────────────────────
+        // ── SSR Reflection ───────────────────────────────────────────────
+		if (g_bUseScreenSpaceReflection)
         {
             float3 lerpedNormal = normalize(lerp(i.vNormalWs, blendedNormal, g_flNormalStrength));
             float3 reflDirWs = reflect(-viewDirNorm, lerpedNormal);

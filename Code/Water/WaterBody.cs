@@ -21,7 +21,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 
 	protected override void OnEnabled()
 	{
-		WaterManager.Get(Scene)?.Register(this);
+		WaterManager.Current?.Register(this);
 
 		UpdateColliderState();
 
@@ -30,7 +30,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 
 	protected override void OnDisabled()
 	{
-		WaterManager.Get(Scene)?.Unregister(this);
+		WaterManager.Current?.Unregister(this);
 
 		m_HullCollider?.Destroy();
 		m_HullCollider = null;
@@ -57,8 +57,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 		Gizmo.Draw.LineBBox(m_HullCollider.LocalBounds);
 	}
 
-	// --- Bounds ---
-
+	// Bounds
 	public void SetBounds(BBox bounds)
 	{
 		SceneVolume = SceneVolume with { Box = bounds };
@@ -92,11 +91,6 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 			   MathF.Abs(point.z - local.Center.z) <= half.z;
 	}
 
-	public BBox GetLocalBounds()
-	{
-		return SceneVolume.GetBounds();
-	}
-
 	public (Vector3 Center, Vector3 Forward, Vector3 Up, Vector3 HalfExtents) GetWorldOBB()
 	{
 		BBox local = SceneVolume.GetBounds();
@@ -104,8 +98,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 		return (WorldTransform.PointToWorld(local.Center), WorldRotation.Forward, WorldTransform.Up, local.Size * 0.5f);
 	}
 
-	// --- Wave queries ---
-
+	// Wave queries
 	public Vector3 GetWaveDisplacementAt(Vector3 _WorldPosition)
 	{
 		WaterDefinition profile = WaterManager.GetWaveProfile(WaterType);
@@ -129,7 +122,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 		BBox local = SceneVolume.GetBounds();
 
 		m_HullCollider = GetOrAddComponent<HullCollider>();
-		m_HullCollider.Flags = ComponentFlags.Hidden;
+		m_HullCollider.Flags |= ComponentFlags.Hidden;
 		m_HullCollider.Static = true;
 		m_HullCollider.Type = HullCollider.PrimitiveType.Box;
 		m_HullCollider.Center = local.Center;
