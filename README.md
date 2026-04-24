@@ -1,10 +1,19 @@
-# WaterTool
+# 🌊 WaterTool
 
 A fully featured water rendering library for s&box. Featuring shader driven water surfaces with physically based buoyancy, waves simulation, and hull mesh exclusion.
 
 ---
 
-## Features
+## 📷 Preview
+
+https://github.com/user-attachments/assets/6c5543ee-a977-4cab-8a07-16b7ef06c1a8
+
+<img width="2176" height="1224" alt="BakedWaterBodies" src="https://github.com/user-attachments/assets/17a9f003-4117-4ad4-bf9d-627a0b26c998" />
+<img width="2176" height="1224" alt="TestPools" src="https://github.com/user-attachments/assets/dda38da7-087f-4dcf-892b-d684f9cace71" />
+<img width="2176" height="1224" alt="TestLake" src="https://github.com/user-attachments/assets/8dcd11ab-4894-43ed-8b74-e1d0bd592d36" />
+<img width="2176" height="1224" alt="Ocean" src="https://github.com/user-attachments/assets/2f91426e-355d-46dc-a1b2-6af36512825b" />
+
+## 📗 Features
 
 ### Rendering
 - **Clipmap water surface** Compute shader driven mesh that tiles out from the camera for infinite looking water with LODs
@@ -25,7 +34,7 @@ A fully featured water rendering library for s&box. Featuring shader driven wate
 
 ---
 
-## Minimal Setup
+## 📀 Minimal Setup
 
 1. Configure the settings of the **WaterManager** in your scene (Project Settings > Systems > Water Manager)
 
