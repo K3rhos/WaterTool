@@ -179,7 +179,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 		if (profile.IsValid())
 			return profile;
 
-		Log.Warning("[WaterTool] No water profile found in the 'Water Manager', please add a water profile for the specified water type!");
+		Log.Warning("[WaterTool] No water profile found in the 'Water Manager', please add a water profile for the specified water type ! (Project Settings > Water Manager > 'Assign the profiles')");
 
 		return Current.m_DefaultProfile;
 	}
