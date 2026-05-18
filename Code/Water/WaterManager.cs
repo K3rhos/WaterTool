@@ -74,7 +74,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 		if (camera != m_LastCamera)
 		{
 			m_LastCamera?.RemoveCommandList(m_CommandList);
-
+			
 			camera?.AddCommandList(m_CommandList, RenderStage.AfterTransparent);
 
 			m_LastCamera = camera;

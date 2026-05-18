@@ -116,6 +116,17 @@ VS
 
 		VS_DecodeObjectSpaceNormalAndTangent(v, i.vNormalOs, i.vTangentUOs_flTangentVSign);
 
+		// The compute shader writes vertex positions in true world space.
+		// ProcessVertex() above applies g_matObjectToWorld to convert object→world,
+		// which is normally a no-op (SceneCustomObject has an identity transform).
+		// However, because the water draws via a deferred CommandList executed by
+		// the camera at AfterTransparent, the GPU's g_matObjectToWorld can be
+		// contaminated by the last object drawn in that stage (e.g. an ObjectHighlight
+		// pass on a cube), causing all water vertices to shift by that object's
+		// world position. Override vPositionWs here with the raw compute-written
+		// position so the surface is always placed at the correct world location.
+		i.vPositionWs.xyz = v.vPositionOs.xyz;
+
 		// Use the original grid position for wave evaluation
 		float2 worldXY = i.vPositionWs.xy;
 
