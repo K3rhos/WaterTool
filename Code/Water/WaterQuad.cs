@@ -28,7 +28,6 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private int m_TotalIndexCount;
 	private readonly RenderAttributes m_DrawAttributes = new RenderAttributes();
 	private CommandList m_CommandList;
-	private Texture m_CachedFrameBufferCopy;
 	private GpuBuffer<Vector4> m_WaterExclusionVolumeBuffer;
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
 	private GpuBuffer<Vector4> m_HullExclusionBuffer;
@@ -465,13 +464,11 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 
 
-	internal void Draw(Texture _FrameBufferCopy)
+	internal void Draw()
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
-
-		m_CachedFrameBufferCopy = _FrameBufferCopy;
-
+		
 		m_CommandList.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
 	}
 
@@ -523,9 +520,6 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	private void UpdateShaderAttributes()
 	{
-		if (m_CachedFrameBufferCopy.IsValid())
-			m_DrawAttributes.Set("FrameBufferCopyTexture", m_CachedFrameBufferCopy);
-
 		m_DrawAttributes.Set("RequireWaterInclusionVolumes", false);
 
 		WaterDefinition profile = WaterManager.GetWaveProfile(WaterType);

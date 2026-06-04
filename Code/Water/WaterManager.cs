@@ -191,8 +191,6 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 		if (Graphics.LayerType != SceneLayerType.Translucent)
 			return;
 
-		var fbCopy = Graphics.GrabFrameTexture();
-
 		m_CommandList.Reset();
 
 		bool hasAnythingToRender = false;
@@ -236,12 +234,14 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 			quad.BarrierTransition();
 		}
 
+		m_CommandList.Attributes.GrabFrameTexture("FrameBufferCopyTexture");
+
 		foreach (var renderer in QuadRenderers)
 		{
 			if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
 				continue;
 
-			renderer.Draw(fbCopy.ColorTarget);
+			renderer.Draw();
 		}
 
 		foreach (var quad in Quads)
@@ -249,7 +249,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 			if (!quad.IsValid() || !quad.ParticipatesInRendering)
 				continue;
 
-			quad.Draw(fbCopy.ColorTarget);
+			quad.Draw();
 		}
 	}
 }

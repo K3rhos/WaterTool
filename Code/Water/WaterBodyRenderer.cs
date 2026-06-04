@@ -44,7 +44,6 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 	private int m_TotalIndexCount;
 	private readonly RenderAttributes m_DrawAttributes = new();
 	private CommandList m_CommandList;
-	private Texture m_CachedFrameBufferCopy;
 	private int m_LastConfigHash;
 	private readonly Vector4[] m_WaterInclusionVolumeData = new Vector4[MAX_WATER_INCLUSION_VOLUMES * WATER_INCLUSION_VOLUME_ROWS];
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
@@ -171,20 +170,16 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 			m_CommandList.ResourceBarrierTransition(m_VertexBuffer, ResourceState.UnorderedAccess, ResourceState.VertexOrIndexBuffer);
 	}
 
-	internal void Draw(Texture frameBufferCopy)
+	internal void Draw()
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
-
-		m_CachedFrameBufferCopy = frameBufferCopy;
+		
 		m_CommandList.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
 	}
 
 	private void UpdateShaderAttributes()
 	{
-		if (m_CachedFrameBufferCopy.IsValid())
-			m_DrawAttributes.Set("FrameBufferCopyTexture", m_CachedFrameBufferCopy);
-
 		BBox localBounds = GetWorldBounds2D();
 
 		m_DrawAttributes.Set("RequireWaterInclusionVolumes", UseHybridInclusionBounds);

@@ -18953,11 +18953,6 @@
       "CustomBounds": false
     },
     "GameObjectSystems": {
-      "Sandbox.SelectionSetsSystem": {
-        "Data": {
-          "SelectionSets": []
-        }
-      },
       "RedSnail.WaterTool.WaterManager": {
         "UnderwaterPostProcessVolume": {
           "_type": "component",
@@ -18971,8 +18966,10 @@
           "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
         }
       },
-      "Sandbox.MovieMaker.MovieRecorderSystem": {
-        "DisableClientRecording": false
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
       }
     }
   },
