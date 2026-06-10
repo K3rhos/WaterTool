@@ -22,9 +22,30 @@ public sealed class Buoyancy : Component
 
 	[Property] private float AirLeakRate { get; set; } = 0.0f;
 
+	[Property, Group("Ripples")] private bool EmitEntryRipple { get; set; } = true;
+	// Ring spacing for the entry splash — smaller = tighter, more concentric rings.
+	[Property, Group("Ripples"), Range(20.0f, 400.0f)] private float EntryRippleWavelength { get; set; } = 120.0f;
+	// Ring size for the entry splash — larger = a bigger, broader ripple.
+	[Property, Group("Ripples"), Range(10.0f, 500.0f)] private float EntryRippleWidth { get; set; } = 50.0f;
+
+	// Continuous wake ripples while the hull moves across the surface (great for boats).
+	[Property, Group("Ripples")] private bool EmitWakeRipple { get; set; } = true;
+	[Property, Group("Ripples")] private float WakeRippleStrength { get; set; } = 0.1f;
+	// Minimum horizontal speed (units/s) before a wake ripple is emitted.
+	[Property, Group("Ripples")] private float WakeRippleMinSpeed { get; set; } = 20.0f;
+	// Seconds between wake ripples — lower = denser trail (uses more of the global ripple budget).
+	[Property, Group("Ripples")] private float WakeRippleInterval { get; set; } = 0.0333f;
+	// Ring spacing for wake ripples — smaller = tighter, more concentric rings.
+	[Property, Group("Ripples"), Range(20.0f, 400.0f)] private float WakeRippleWavelength { get; set; } = 120.0f;
+	// Ring size for wake ripples — larger = a bigger, broader ripple.
+	[Property, Group("Ripples"), Range(10.0f, 500.0f)] private float WakeRippleWidth { get; set; } = 50.0f;
+
 	[Sync] public float AirVolume { get; private set; } = 1.0f;
 	[Sync] public float WaterHeight { get; private set; } = float.MinValue;
 	[Sync] public bool IsTouchingWater { get; private set; }
+
+	private bool m_WasBelowSurface;
+	private float m_WakeTimer;
 
 	public bool IsUnderwater => IsTouchingWater && WorldPosition.z <= WaterHeight;
 
@@ -56,6 +77,8 @@ public sealed class Buoyancy : Component
 			WaterHeight = waveHeight;
 			IsTouchingWater = true;
 
+			HandleEntryRipple();
+
 			float colliderHeight = m_Collider.LocalBounds.Size.z;
 			bool isNearWater = WorldPosition.z <= WaterHeight + colliderHeight;
 
@@ -65,16 +88,69 @@ public sealed class Buoyancy : Component
 				ApplyAngularDrag();
 				ApplyBuoyancy();
 				ApplyWaveTransport();
+
+				HandleWakeRipple();
 			}
 		}
 		else
 		{
 			IsTouchingWater = false;
 			WaterHeight = float.MinValue;
+			m_WasBelowSurface = false;
 		}
 
 		// Always run, drains while submerged, recovers while above water or fully out
 		UpdateAirVolume();
+	}
+
+
+
+	private void HandleEntryRipple()
+	{
+		// Detect the moment the object crosses below the surface and emit a splash
+		// ripple. A minimum impact speed gate keeps a gently bobbing hull from
+		// spamming ripples every time it dips through the surface line.
+		bool belowSurface = WorldPosition.z <= WaterHeight;
+
+		if (EmitEntryRipple && belowSurface && !m_WasBelowSurface)
+		{
+			float impactSpeed = float.Max(0.0f, -m_Collider.Rigidbody.Velocity.z);
+
+			if (impactSpeed > 40.0f)
+			{
+				float strength = (impactSpeed / 150.0f).Clamp(0.3f, 2.5f);
+				WaterManager.AddRipple(WorldPosition.WithZ(WaterHeight), strength, EntryRippleWavelength, EntryRippleWidth);
+			}
+		}
+
+		m_WasBelowSurface = belowSurface;
+	}
+
+
+
+	private void HandleWakeRipple()
+	{
+		if (!EmitWakeRipple)
+			return;
+
+		// Emit a steady trail of ripples while the hull moves across the surface.
+		// The min-speed gate stops a near-stationary hull bobbing in the waves from
+		// dribbling out ripples; the timer spaces them along the path of travel.
+		float horizontalSpeed = m_Collider.Rigidbody.Velocity.WithZ(0.0f).Length;
+
+		if (horizontalSpeed < WakeRippleMinSpeed)
+			return;
+
+		m_WakeTimer -= Time.Delta;
+
+		if (m_WakeTimer > 0.0f)
+			return;
+		
+		float strength = (horizontalSpeed / 1000.0f).Clamp(0.1f, 1.0f);
+		
+		WaterManager.AddRipple(WorldPosition.WithZ(WaterHeight), strength, WakeRippleWavelength, m_Collider.LocalBounds.Extents.x);
+		
+		m_WakeTimer = WakeRippleInterval;
 	}
 
 

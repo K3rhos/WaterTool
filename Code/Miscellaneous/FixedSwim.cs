@@ -9,6 +9,10 @@ namespace RedSnail.WaterTool;
 [Icon( "scuba_diving" ), Group( "Movement" ), Title( "MoveMode - Swim (Fixed)" )]
 public sealed class MoveModeSwimFixed : MoveMode
 {
+	private float m_TargetVolume;
+	private bool m_WasInWater;
+	private bool m_HasTouchedWater;
+	
 	[Property]
 	public int Priority { get; set; } = 10;
 
@@ -19,7 +23,17 @@ public sealed class MoveModeSwimFixed : MoveMode
 	/// We will update this based on how much you're in a "water" tagged trigger.
 	/// </summary>
 	public float WaterLevel { get; private set; }
+	
+	[Property, Group("Sounds")] public SoundEvent WaterSplashEnter { get; set; }
+	[Property, Group("Sounds")] public SoundEvent WaterSplashExit { get; set; }
+	[Property, Group("Sounds")] public SoundPointComponent WaterSwimmingLoop { get; set; }
 
+	protected override void OnStart()
+	{
+		if (WaterSwimmingLoop.IsValid())
+			WaterSwimmingLoop.Enabled = false;
+	}
+	
 	public override void UpdateRigidBody( Rigidbody body )
 	{
 		body.Gravity = false;
@@ -36,12 +50,18 @@ public sealed class MoveModeSwimFixed : MoveMode
 	public override void OnModeBegin()
 	{
 		Controller.IsSwimming = true;
+		
+		if (WaterSwimmingLoop.IsValid())
+			WaterSwimmingLoop.Enabled = true;
 	}
 
 	public override void OnModeEnd( MoveMode next )
 	{
 		Controller.IsSwimming = false;
-
+		
+		if (WaterSwimmingLoop.IsValid())
+			WaterSwimmingLoop.Enabled = false;
+		
 		// jump when leaving the water
 		if ( Input.Down( "Jump" ) )
 		{
@@ -52,11 +72,30 @@ public sealed class MoveModeSwimFixed : MoveMode
 	protected override void OnFixedUpdate()
 	{
 		UpdateWaterLevel();
+
+		if (m_HasTouchedWater != m_WasInWater)
+		{
+			if (m_HasTouchedWater)
+			{
+				if (WaterSplashEnter.IsValid())
+					Sound.Play(WaterSplashEnter, WorldPosition);
+			}
+			else
+			{
+				if (WaterSplashExit.IsValid())
+					Sound.Play(WaterSplashExit, WorldPosition);
+			}
+			
+			m_WasInWater = m_HasTouchedWater;
+		}
 	}
 
 	void UpdateWaterLevel()
 	{
 		if ( Controller?.Body == null )
+			return;
+		
+		if (GameObject.Parent != Scene)
 			return;
 
 		var wt = WorldTransform;
@@ -66,11 +105,18 @@ public sealed class MoveModeSwimFixed : MoveMode
 		float waterLevel = 0;
 		
 		var waterSurface = WaterManager.GetWaterHeightAt( head );
-		var level = Vector3.InverseLerp( waterSurface, foot, head, true );
+		var level = Vector3.InverseLerp( waterSurface, foot, head );
 		level = (level * 100).CeilToInt() / 100.0f;
 
-		if ( level > waterLevel )
+		if (level > waterLevel)
+		{
+			m_HasTouchedWater = true;
 			waterLevel = level;
+		}
+		else
+		{
+			m_HasTouchedWater = false;
+		}
 
 		if ( WaterLevel != waterLevel )
 		{

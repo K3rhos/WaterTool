@@ -62,6 +62,9 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 		m_SceneObject?.Delete();
 		m_SceneObject = null;
 
+		m_RippleBuffer?.Dispose();
+		m_RippleBuffer = null;
+
 		base.Dispose();
 	}
 
@@ -91,6 +94,8 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 		if (UnderwaterPostProcessVolume.IsValid())
 			UnderwaterPostProcessVolume.Enabled = IsPositionInsideAny(m_CameraPosition);
+
+		UpdateRipples();
 	}
 
 

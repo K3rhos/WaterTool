@@ -47,13 +47,14 @@ Layer0
 	g_vFresnelColor "[0.211765 0.552941 0.647059 1.000000]"
 
 	//---- Normals ----
-	g_flNormalStrength "0.090"
+	g_flNormalStrength "0.060"
 	g_flSpeedMainNormal "15.000"
 	g_flSpeedSecondNormal "-30.000"
 	MainNormal "textures/water/water_normal.jpg"
 	SecondNormal "textures/water/water_normal.jpg"
 
 	//---- Reflection ----
+	g_bUseScreenSpaceReflection "1"
 	g_flFoamReflectionStrength "0.000"
 	g_flReflectionStepSize "2000.000"
 	g_flReflectionStrength "1.000"

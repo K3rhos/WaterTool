@@ -149,7 +149,6 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 			float snapX = MathF.Floor(clipmapAnchor.x / cellSize) * cellSize;
 			float snapY = MathF.Floor(clipmapAnchor.y / cellSize) * cellSize;
 
-			shader.Attributes.Set("DiscMode", false);
 			shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
 			shader.Attributes.Set("VertexOffset", ring * verticesPerRing);
 			shader.Attributes.Set("GridWidth", CellsPerRing);
@@ -197,6 +196,12 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 
 		float tilingScalar = (OuterExtent / BASE_TILE_SIZE) * TextureTilingMultiplier;
 		m_DrawAttributes.Set("NormalTiling", new Vector2(tilingScalar, tilingScalar));
+
+		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
+
+		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
+		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
+		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
 
 		SetWaterInclusionVolumes(Scene.Camera.WorldPosition);
 		SetWaterExclusionVolumes(Scene.Camera.WorldPosition);

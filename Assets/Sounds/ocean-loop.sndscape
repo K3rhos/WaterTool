@@ -1,5 +1,5 @@
 {
-  "MasterVolume": "1",
+  "MasterVolume": "0.5",
   "LoopedSounds": [
     {
       "SoundFile": "sounds/ocean-loop.vsnd",

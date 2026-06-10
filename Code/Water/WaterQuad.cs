@@ -26,6 +26,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private GpuBuffer<WaterVertex> m_VertexBuffer;
 	private GpuBuffer<uint> m_IndexBuffer;
 	private int m_TotalIndexCount;
+	private int m_CircleGridWidth = 1;
 	private readonly RenderAttributes m_DrawAttributes = new RenderAttributes();
 	private CommandList m_CommandList;
 	private GpuBuffer<Vector4> m_WaterExclusionVolumeBuffer;
@@ -294,24 +295,58 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	private void BuildCircleBuffers()
 	{
-		int N = CircleSegments;
+		float radius = MathF.Min(Width, Length) / 2.0f;
+		int M = ComputeCircleGridWidth();
+		m_CircleGridWidth = M;
 
-		// center + N edge points
-		m_VertexBuffer = new GpuBuffer<WaterVertex>(N + 1, GpuBuffer.UsageFlags.Vertex | GpuBuffer.UsageFlags.Structured);
+		float cellSize = (radius * 2.0f) / M;   // M cells span the full diameter
+		float half = M * cellSize * 0.5f;        // == radius (grid centred on the circle)
+		float r2 = radius * radius;
 
-		// N pizza-slice triangles: [center, edge[i], edge[i+1]], wrapping last back to edge[1]
-		var indices = new List<uint>(N * 3);
+		// "Minecraft circle": a uniform, world-axis-aligned grid of square cells, masked
+		// to a circular boundary. Because the vertices live on the same grid as a
+		// rectangular quad, wave displacement behaves identically (no polar pinching).
+		int verticesPerSide = M + 1;
+		int vertexCount = verticesPerSide * verticesPerSide;
+		m_VertexBuffer = new GpuBuffer<WaterVertex>(vertexCount, GpuBuffer.UsageFlags.Vertex | GpuBuffer.UsageFlags.Structured);
 
-		for (int i = 0; i < N; i++)
+		var indices = new List<uint>();
+
+		// Emit a cell's two triangles only when its centre falls inside the circle
+		for (int y = 0; y < M; y++)
 		{
-			indices.Add(0);
-			indices.Add((uint)(i + 1));
-			indices.Add((uint)((i + 1) % N + 1));
+			for (int x = 0; x < M; x++)
+			{
+				float cx = (x + 0.5f) * cellSize - half;
+				float cy = (y + 0.5f) * cellSize - half;
+
+				if (cx * cx + cy * cy > r2)
+					continue;
+
+				uint i0 = (uint)(y * verticesPerSide + x);
+				uint i1 = i0 + 1;
+				uint i2 = i0 + (uint)verticesPerSide;
+				uint i3 = i2 + 1;
+
+				indices.Add(i0); indices.Add(i1); indices.Add(i2);
+				indices.Add(i1); indices.Add(i3); indices.Add(i2);
+			}
 		}
 
 		m_IndexBuffer = new GpuBuffer<uint>(indices.Count, GpuBuffer.UsageFlags.Index | GpuBuffer.UsageFlags.Structured);
 		m_IndexBuffer.SetData(indices);
 		m_TotalIndexCount = indices.Count;
+	}
+
+
+
+	// Number of grid cells across the circle's diameter, driven by BaseCellSize so the
+	// blockiness matches the rest of the water — smaller cells = finer (rounder) edge.
+	private int ComputeCircleGridWidth()
+	{
+		float diameter = MathF.Min(Width, Length);
+		int cells = (int)MathF.Ceiling(diameter / BaseCellSize);
+		return Math.Clamp(cells, 1, 256);
 	}
 
 
@@ -394,23 +429,24 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 		if (CircleShape)
 		{
-			float radius = MathF.Min(Width, Length) / 2.0f;
-
-			_Shader.Attributes.Set("DiscMode", true);
+			int M = m_CircleGridWidth;
+			int verticesPerSide = M + 1;
+			float cellSize = MathF.Min(Width, Length) / M;   // M cells span the diameter
 
 			_Shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
 			_Shader.Attributes.Set("VertexOffset", 0);
 
+			_Shader.Attributes.Set("GridWidth", M);
+			_Shader.Attributes.Set("CellSize", cellSize);
+
+			// Static grid centred on the quad — the circular pool doesn't follow the camera
+			_Shader.Attributes.Set("SnapPosition", (Vector2)WorldPosition);
 			_Shader.Attributes.Set("WaterZ", WorldPosition.z);
 
 			_Shader.Attributes.Set("TilingScale", 1.0f / outerExtent);
 			_Shader.Attributes.Set("ClampToBounds", false);
 
-			_Shader.Attributes.Set("CircleSegments", CircleSegments);
-			_Shader.Attributes.Set("CircleCenter", (Vector2)WorldPosition);
-			_Shader.Attributes.Set("CircleRadius", radius);
-
-			_Shader.Dispatch(CircleSegments + 1, 1, 1);
+			_Shader.Dispatch(verticesPerSide * verticesPerSide, 1, 1);
 
 			return;
 		}
@@ -432,8 +468,6 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 			float snapX = MathF.Floor(clipmapAnchor.x / cellSize) * cellSize;
 			float snapY = MathF.Floor(clipmapAnchor.y / cellSize) * cellSize;
-
-			_Shader.Attributes.Set("DiscMode", false);
 
 			_Shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
 			_Shader.Attributes.Set("VertexOffset", ring * verticesPerRing);
@@ -535,6 +569,12 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		Vector2 tiling = new Vector2((outerExtent / BASE_TILE_SIZE) * TextureTilingMultiplier, (outerExtent / BASE_TILE_SIZE) * TextureTilingMultiplier);
 
 		m_DrawAttributes.Set("NormalTiling", tiling);
+
+		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
+
+		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
+		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
+		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
 
 		SetWaterExclusionVolumes(Scene.Camera.WorldPosition);
 		SetHullExclusionVolumes();

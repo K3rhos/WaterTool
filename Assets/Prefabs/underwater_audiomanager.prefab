@@ -1,0 +1,42 @@
+{
+  "RootObject": {
+    "__guid": "cd757b2e-2797-4b8a-9e30-41ac7cae50f7",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "underwater_audiomanager",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 2,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [
+      {
+        "__type": "RedSnail.WaterTool.UnderwaterAudioManager",
+        "__guid": "9c6f6896-3626-4182-b112-7c51e6676042",
+        "__enabled": true,
+        "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "UnderwaterPitchMultiplier": 0.5,
+        "UnderwaterVolumeMultiplier": 0.8
+      }
+    ],
+    "Children": []
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

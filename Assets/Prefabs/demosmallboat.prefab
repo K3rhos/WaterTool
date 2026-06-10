@@ -99,6 +99,7 @@
         "OnComponentUpdate": null,
         "OverrideMassCenter": false,
         "RigidbodyFlags": 0,
+        "SleepThreshold": 2,
         "StartAsleep": false
       },
       {
@@ -110,6 +111,10 @@
         "AngularDragCoefficient": 2,
         "Damping": 5,
         "DragCoefficient": 1,
+        "EmitEntryRipple": true,
+        "EmitWakeRipple": true,
+        "EntryRippleWavelength": 70,
+        "EntryRippleWidth": 80,
         "HorizontalDisplacementStrength": 1,
         "HullSpread": 0.6,
         "OnComponentDestroy": null,
@@ -120,6 +125,11 @@
         "OnComponentUpdate": null,
         "SpringStiffness": 100,
         "SurfaceOffset": 10,
+        "WakeRippleInterval": 0.0333,
+        "WakeRippleMinSpeed": 10,
+        "WakeRippleStrength": 0.2,
+        "WakeRippleWavelength": 70,
+        "WakeRippleWidth": 80,
         "WaveTransportForce": 40
       },
       {

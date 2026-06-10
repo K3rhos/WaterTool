@@ -26,8 +26,6 @@ CS
 	
     RWStructuredBuffer<WaterVertex> VertexBuffer < Attribute("VertexBuffer"); > ;
 
-    bool DiscMode < Attribute("DiscMode"); Default(0); > ;
-
 	int VertexOffset < Attribute("VertexOffset"); Default(0); >;
 	int GridWidth < Attribute("GridWidth"); Default(64); >;
     float CellSize < Attribute("CellSize"); Default(8); > ;
@@ -40,10 +38,6 @@ CS
     float2 BoundsMin < Attribute("BoundsMin"); Default2(-5000, -5000); > ;
     float2 BoundsMax < Attribute("BoundsMax"); Default2(5000, 5000); > ;
 
-	int CircleSegments < Attribute("CircleSegments"); Default(16); >;
-	float2 CircleCenter < Attribute("CircleCenter"); Default2(0, 0); >;
-	float CircleRadius < Attribute("CircleRadius"); Default(5000); >;
-
 	[numthreads(64, 1, 1)]
 	void MainCs(uint3 id : SV_DispatchThreadID)
 	{
@@ -51,33 +45,6 @@ CS
 		v.Normal = float3(0, 0, 1);
 		v.Tangent = float4(1, 0, 0, 1);
 		v.Color = float4(1, 1, 1, 1);
-
-		if (DiscMode)
-		{
-			if (id.x >= (uint)(CircleSegments + 1))
-				return;
-
-			if (id.x == 0)
-			{
-                // Center vertex
-                v.Position = float3(CircleCenter.x, CircleCenter.y, WaterZ);
-                v.TexCoord = float2(CircleCenter.x, CircleCenter.y) * TilingScale;
-			}
-			else
-			{
-				// Edge vertex — evenly spaced around the circle
-                float angle = (float)(id.x - 1) / (float)CircleSegments * 6.28318530718f;
-                float ex = CircleCenter.x + cos(angle) * CircleRadius;
-                float ey = CircleCenter.y + sin(angle) * CircleRadius;
-				
-				v.Position = float3(ex, ey, WaterZ);
-				v.TexCoord = float2(ex, ey) * TilingScale;
-			}
-
-			VertexBuffer[VertexOffset + (int)id.x] = v;
-
-			return;
-		}
 
 		int verticesPerSide = GridWidth + 1;
 		int totalVertices = verticesPerSide * verticesPerSide;

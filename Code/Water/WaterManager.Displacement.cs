@@ -124,14 +124,20 @@ public partial class WaterManager
 		WaterQuad quad = FindQuadAtPosition(position);
 		WaterBody body = FindBodyAtPosition(position);
 
+		Vector3 displacement;
+
 		if (quad.IsValid() && body.IsValid())
-			return quad.GetWaveHeightAt(position) >= body.GetWaveHeightAt(position)
+			displacement = quad.GetWaveHeightAt(position) >= body.GetWaveHeightAt(position)
 				? quad.GetWaveDisplacementAt(position)
 				: body.GetWaveDisplacementAt(position);
+		else if (quad.IsValid()) displacement = quad.GetWaveDisplacementAt(position);
+		else if (body.IsValid()) displacement = body.GetWaveDisplacementAt(position);
+		else return Vector3.Zero;
 
-		if (quad.IsValid()) return quad.GetWaveDisplacementAt(position);
-		if (body.IsValid()) return body.GetWaveDisplacementAt(position);
-		return Vector3.Zero;
+		// Interactive ripples add purely vertical displacement on top of the base waves
+		displacement.z += Current?.ComputeRippleHeight((Vector2)position) ?? 0.0f;
+
+		return displacement;
 	}
 
 	public static Vector3 GetWaveVelocityAt(Vector3 position)
@@ -167,11 +173,15 @@ public partial class WaterManager
 		WaterQuad quad = FindQuadAtPosition(position);
 		WaterBody body = FindBodyAtPosition(position);
 
-		if (quad.IsValid() && body.IsValid())
-			return MathF.Max(quad.GetWaveHeightAt(position), body.GetWaveHeightAt(position));
+		float height;
 
-		if (quad.IsValid()) return quad.GetWaveHeightAt(position);
-		if (body.IsValid()) return body.GetWaveHeightAt(position);
-		return float.MinValue;
+		if (quad.IsValid() && body.IsValid())
+			height = MathF.Max(quad.GetWaveHeightAt(position), body.GetWaveHeightAt(position));
+		else if (quad.IsValid()) height = quad.GetWaveHeightAt(position);
+		else if (body.IsValid()) height = body.GetWaveHeightAt(position);
+		else return float.MinValue;
+
+		// Interactive ripples raise/lower the effective surface so physics tracks the visual
+		return height + (Current?.ComputeRippleHeight((Vector2)position) ?? 0.0f);
 	}
 }

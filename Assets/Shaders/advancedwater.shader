@@ -73,6 +73,22 @@ VS
 
 	float g_flWaterTime < Attribute("WaterTime"); Default1(0); >;
 
+	// Finite-difference step for the surface-normal reconstruction (see MainVs). Scaled by
+	// distance to the camera so it tracks the clipmap's vertex spacing (cells grow with
+	// distance), band-limiting the normal to what the mesh can represent — without this the
+	// high-frequency detail waves alias into a static, world-locked grid pattern.
+	float g_flWaveNormalEpsScale < Attribute("WaveNormalEpsScale"); Default1(0.047); >;
+	float g_flWaveNormalEpsMin < Attribute("WaveNormalEpsMin"); Default1(8); >;
+
+	// Interactive ripples — expanding radial wave packets stamped by objects entering/moving on the water.
+	// Each emitter is a float4: (Center.xy, StartTime, Strength). Driven by WaterManager.
+	int g_nRippleCount < Attribute("RippleCount"); Default1(0); >;
+	float g_flRippleAmplitude < Attribute("RippleAmplitude"); Default1(8); >;
+	float g_flRippleSpeed < Attribute("RippleSpeed"); Default1(250); >;
+	float g_flRippleDamping < Attribute("RippleDamping"); Default1(1.5); >;
+	// Two float4 rows per ripple: row0 = (Center.xy, StartTime, Strength), row1 = (Wavelength, Width, _, _)
+	StructuredBuffer<float4> g_vRippleData < Attribute("RippleData"); >;
+
 	// Gerstner wave sum (Identical formula to C# ComputeGerstner for exact CPU/GPU match.)
 	// Returns float3: (dx, dy, dz) displacement. XY = horizontal orbital motion, Z = vertical.
 	float3 ComputeGerstner(float2 worldXY, float scale, float speed, float2 dir, int octaves, float lacunarity, float persistence, float steepness, float time)
@@ -105,6 +121,62 @@ VS
 		return displacement / maxAmp;
 	}
 
+	// Sum of all active ripple emitters at a world XY position. Returns vertical displacement.
+	// MUST mirror WaterManager.ComputeRippleHeight (CPU) so physics matches the visual.
+	float ComputeRipples(float2 worldXY)
+	{
+		if (g_nRippleCount <= 0)
+			return 0.0;
+
+		float z = 0.0;
+
+		[loop]
+		for (int r = 0; r < g_nRippleCount; r++)
+		{
+			float4 row0 = g_vRippleData[r * 2 + 0];
+			float4 row1 = g_vRippleData[r * 2 + 1];
+
+			float2 center = row0.xy;
+			float startT = row0.z;
+			float strength = row0.w;
+			float wavelength = row1.x;
+			float width = row1.y;
+
+			float age = g_flWaterTime - startT;
+			if (age < 0.0)
+				continue;
+
+			float freq = wavelength > 0.001 ? (6.28318530718 / wavelength) : 0.0;
+			float invWidthSq = width > 0.001 ? 1.0 / (width * width) : 0.0;
+
+			float d = length(worldXY - center);
+			float ring = age * g_flRippleSpeed;
+			float ringDelta = d - ring;
+
+			float spatialEnv = exp(-ringDelta * ringDelta * invWidthSq);
+			float timeEnv = exp(-age * g_flRippleDamping);
+			float wave = sin(ringDelta * freq);
+
+			z += wave * spatialEnv * timeEnv * g_flRippleAmplitude * strength;
+		}
+
+		return z;
+	}
+
+	// Total surface displacement (detail waves + swell + ripples) at a world XY.
+	// Single source of truth so the vertex position and the finite-difference normal
+	// below always agree. XY = orbital Gerstner motion, Z = height + ripples.
+	float3 TotalDisplacement(float2 worldXY)
+	{
+		float3 detail = ComputeGerstner(worldXY, g_flWavesScale, g_flWavesSpeed, g_vWavesDirection, g_nWavesOctaves, g_flWavesLacunarity, g_flWavesPersistence, g_flWavesSteepness, g_flWaterTime) * g_flWavesIntensity;
+		float3 swell  = ComputeGerstner(worldXY, g_flSwellScale, g_flSwellSpeed, g_vSwellDirection, g_nSwellOctaves, g_flSwellLacunarity, g_flSwellPersistence, g_flSwellSteepness, g_flWaterTime) * g_flSwellIntensity;
+
+		float3 disp = detail + swell;
+		disp.z += ComputeRipples(worldXY);
+
+		return disp;
+	}
+
 	PixelInput MainVs(VertexInput v)
 	{
 		PixelInput i = ProcessVertex(v);
@@ -127,18 +199,41 @@ VS
 		// position so the surface is always placed at the correct world location.
 		i.vPositionWs.xyz = v.vPositionOs.xyz;
 
-		// Use the original grid position for wave evaluation
+		// Use the original grid (pre-displacement) position for wave evaluation
 		float2 worldXY = i.vPositionWs.xy;
+		float3 basePos = i.vPositionWs.xyz;
 
-        // Detail waves
-        float3 detailDisp = ComputeGerstner(worldXY, g_flWavesScale, g_flWavesSpeed, g_vWavesDirection, g_nWavesOctaves, g_flWavesLacunarity, g_flWavesPersistence, g_flWavesSteepness, g_flWaterTime) * g_flWavesIntensity;
+		// Evaluate the displacement field at this vertex and two nearby neighbours,
+		// then reconstruct the surface normal from the displaced positions. Without
+		// this the mesh deforms but the normal stays flat (0,0,1), so waves/ripples
+		// never catch the light.
+		//
+		// The step (eps) is matched to the local clipmap vertex spacing, which grows
+		// with camera distance. This band-limits the normal to what the mesh can
+		// actually represent; a fixed tiny step makes the high-frequency detail waves
+		// alias into a static, world-locked grid pattern (worst in the distance where
+		// cells are largest). Near the camera eps is small → crisp ripples; far away
+		// eps is large → smooth, with the scrolling normal maps carrying fine detail.
+		float distToCam = distance(worldXY, g_vCameraPositionWs.xy);
+		float eps = max(g_flWaveNormalEpsMin, distToCam * g_flWaveNormalEpsScale);
+		float3 d0 = TotalDisplacement(worldXY);
+		float3 dX = TotalDisplacement(worldXY + float2(eps, 0.0));
+		float3 dY = TotalDisplacement(worldXY + float2(0.0, eps));
 
-        // Swell waves
-        float3 swellDisp = ComputeGerstner(worldXY, g_flSwellScale, g_flSwellSpeed, g_vSwellDirection, g_nSwellOctaves, g_flSwellLacunarity, g_flSwellPersistence, g_flSwellSteepness, g_flWaterTime) * g_flSwellIntensity;
+		// Tangents of the displaced surface (neighbour minus centre, including the eps step)
+		float3 tangentX = float3(eps, 0.0, 0.0) + (dX - d0);
+		float3 tangentY = float3(0.0, eps, 0.0) + (dY - d0);
+		float3 waveNormal = normalize(cross(tangentX, tangentY));
 
-		// Apply full XY + Z displacement (XY creates the orbital Gerstner motion)
-		i.vPositionWs.xyz += detailDisp + swellDisp;
+		// Apply the displacement (XY = orbital Gerstner motion, Z = height + ripples)
+		i.vPositionWs.xyz = basePos + d0;
 		i.vPositionPs.xyzw = Position3WsToPs(i.vPositionWs.xyz);
+
+		// Inject the geometric wave normal + matching tangents (world space) so the
+		// normal-map TBN, fresnel and reflections all respond to the wave shape.
+		i.vNormalWs = waveNormal;
+		i.vTangentUWs = normalize(tangentX);
+		i.vTangentVWs = normalize(tangentY);
 
 		return FinalizeVertex(i);
 	}
@@ -163,8 +258,8 @@ PS
 	// ── Textures ──
     Texture2D g_tFrameBufferCopyTexture < Attribute("FrameBufferCopyTexture"); SrgbRead(false); > ;
 
-	CreateInputTexture2D( MainNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile( "materials/dev/white_color.tga" ) );
-	CreateInputTexture2D( SecondNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile( "materials/dev/white_color.tga" ) );
+    CreateInputTexture2D(MainNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile("materials/default/default_normal.tga"));
+    CreateInputTexture2D(SecondNormal, Linear, 8, "NormalizeNormals", "_normal", "Normals,0/,0/0", DefaultFile("materials/default/default_normal.tga"));
 	Texture2D g_tMainNormal < Channel( RGBA, Box( MainNormal ), Linear ); OutputFormat( DXT5 ); SrgbRead( False ); >;
 	Texture2D g_tSecondNormal < Channel( RGBA, Box( SecondNormal ), Linear ); OutputFormat( DXT5 ); SrgbRead( False ); >;
 	TextureAttribute( LightSim_DiffuseAlbedoTexture, g_tSecondNormal )
@@ -557,7 +652,9 @@ PS
         float shoreOpacity = lerp(g_flShoreOpacity, 1.0, shoreBlend);
         m.Opacity = shoreOpacity * waterColor.a;
 		m.Normal = scaledNormal;
-		m.Roughness = g_flRoughness;
+        m.Roughness = g_flRoughness;
+		
+        // m.Normal = TransformNormal(m.Normal, i.vNormalWs, i.vTangentUWs, i.vTangentVWs);
 
 		m.Roughness = saturate(m.Roughness);
 		m.Opacity = saturate(m.Opacity);
