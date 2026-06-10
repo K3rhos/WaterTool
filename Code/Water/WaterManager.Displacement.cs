@@ -46,19 +46,27 @@ public partial class WaterManager
 			
 			var local = quad.HullCollider.WorldTransform.PointToLocal(position);
 			bool insideXY;
+			float floorLocalZ;
 
 			if (quad.HullCollider.Type == HullCollider.PrimitiveType.Cylinder)
 			{
 				Vector2 flat = new(local.x, local.y);
 				insideXY = flat.LengthSquared <= quad.HullCollider.Radius * quad.HullCollider.Radius;
+				floorLocalZ = quad.HullCollider.Center.z - quad.HullCollider.Height * 0.5f;
 			}
 			else
 			{
 				Vector3 half = quad.HullCollider.BoxSize * 0.5f;
 				insideXY = MathF.Abs(local.x) <= half.x && MathF.Abs(local.y) <= half.y;
+				floorLocalZ = quad.HullCollider.Center.z - half.z;
 			}
 
 			if (!insideXY)
+				continue;
+
+			// Water has a finite depth: ignore the quad once we're beneath its floor so the
+			// column isn't treated as bottomless (otherwise swim/buoyancy stay "submerged" forever).
+			if (local.z < floorLocalZ)
 				continue;
 
 			float dist = MathF.Abs(position.z - quad.WorldPosition.z);
@@ -76,6 +84,10 @@ public partial class WaterManager
 		foreach (WaterBody body in Current?.Bodies ?? [])
 		{
 			if (!body.IsValid() || !body.Active || !body.ContainsPointXY(position))
+				continue;
+
+			// Finite depth: skip bodies whose floor is above us (we're below the volume).
+			if (position.z < body.GetBottomHeight())
 				continue;
 
 			float dist = body.GetVerticalDistanceToSurface(position);

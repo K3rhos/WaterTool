@@ -70,6 +70,13 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 		return WorldTransform.PointToWorld(new Vector3(local.Center.x, local.Center.y, local.Maxs.z)).z;
 	}
 
+	public float GetBottomHeight()
+	{
+		BBox local = SceneVolume.GetBounds();
+
+		return WorldTransform.PointToWorld(new Vector3(local.Center.x, local.Center.y, local.Mins.z)).z;
+	}
+
 	public bool ContainsPointXY(Vector3 worldPosition)
 	{
 		BBox local = SceneVolume.GetBounds();

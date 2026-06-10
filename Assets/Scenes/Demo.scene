@@ -16303,7 +16303,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/oceanwater.vmat",
@@ -16322,8 +16322,8 @@
               "__guid": "7727acd5-6dba-411c-a2c7-30cf22e26c21",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -16775,7 +16775,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/lakewater.vmat",
@@ -16794,8 +16794,8 @@
               "__guid": "5d5fca4c-feca-40dc-8d5f-a74b0effe60d",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -17247,7 +17247,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/poolwater.vmat",
@@ -17266,8 +17266,8 @@
               "__guid": "7a34b52e-6ee1-452f-ab1a-e01ec83d296f",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -17719,7 +17719,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/oceanwater.vmat",
@@ -17738,8 +17738,8 @@
               "__guid": "dfae1dc5-7dac-4058-9565-e19d276d7965",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -18191,7 +18191,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/lakewater.vmat",
@@ -18210,8 +18210,8 @@
               "__guid": "2bc24a0a-6cf6-47c8-945a-e2f98b1f03f4",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -18663,7 +18663,7 @@
               "CellsPerRing": 512,
               "CircleSegments": 16,
               "CircleShape": false,
-              "Depth": 60,
+              "Depth": 52,
               "FollowCameraForClipmap": true,
               "Length": 240,
               "Material": "materials/poolwater.vmat",
@@ -18682,8 +18682,8 @@
               "__guid": "a5dbeddf-09a8-465e-977e-73ef2130fa4a",
               "__enabled": true,
               "Flags": 1,
-              "BoxSize": "240,240,60",
-              "Center": "0,0,-30",
+              "BoxSize": "240,240,52",
+              "Center": "0,0,-26",
               "ColliderFlags": 0,
               "Elasticity": null,
               "Friction": null,
@@ -19044,17 +19044,17 @@
       "CustomBounds": false
     },
     "GameObjectSystems": {
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
+        }
+      },
       "RedSnail.WaterTool.WaterManager": {
         "UnderwaterPostProcessVolume": {
           "_type": "component",
           "component_id": "d8810785-58c5-4ca2-b2d6-717e73dc3609",
           "go": "c0f1d3d3-c894-42a2-982d-88bb8785424e",
           "component_type": "PostProcessVolume"
-        }
-      },
-      "Sandbox.Clutter.ClutterGridSystem": {
-        "Storage": {
-          "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
         }
       },
       "Sandbox.SelectionSetsSystem": {
