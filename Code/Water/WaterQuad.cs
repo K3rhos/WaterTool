@@ -22,13 +22,12 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	#pragma warning restore CS0649
 
-	// GPU buffers (per-quad, owned here — WaterQuadManager owns SceneCustomObject and ComputeShader)
+	// GPU buffers (per-quad, owned here — WaterManager owns the command lists and ComputeShader)
 	private GpuBuffer<WaterVertex> m_VertexBuffer;
 	private GpuBuffer<uint> m_IndexBuffer;
 	private int m_TotalIndexCount;
 	private int m_CircleGridWidth = 1;
-	private readonly RenderAttributes m_DrawAttributes = new RenderAttributes();
-	private CommandList m_CommandList;
+	private readonly RenderAttributes m_DrawAttributes = new();
 	private GpuBuffer<Vector4> m_WaterExclusionVolumeBuffer;
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
 	private GpuBuffer<Vector4> m_HullExclusionBuffer;
@@ -183,13 +182,6 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		{
 			Gizmo.Draw.LineBBox(m_HullCollider.LocalBounds);
 		}
-	}
-	
-	
-	
-	public void CacheCommandList(CommandList _CommandList)
-	{
-		m_CommandList ??= _CommandList;
 	}
 
 
@@ -420,7 +412,9 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 
 
-	internal void DispatchCompute(ComputeShader _Shader, Vector3 _CameraPosition)
+	// Records the clipmap compute dispatches into the command list as DEFERRED commands -
+	// see WaterBodyRenderer.RecordCompute for why per-ring attributes go through the list.
+	internal void RecordCompute(CommandList _CommandList, ComputeShader _Shader, Vector3 _CameraPosition)
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
@@ -433,20 +427,20 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			int verticesPerSide = M + 1;
 			float cellSize = MathF.Min(Width, Length) / M;   // M cells span the diameter
 
-			_Shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
-			_Shader.Attributes.Set("VertexOffset", 0);
+			_CommandList.Attributes.Set("VertexBuffer", m_VertexBuffer);
+			_CommandList.Attributes.Set("VertexOffset", 0);
 
-			_Shader.Attributes.Set("GridWidth", M);
-			_Shader.Attributes.Set("CellSize", cellSize);
+			_CommandList.Attributes.Set("GridWidth", M);
+			_CommandList.Attributes.Set("CellSize", cellSize);
 
 			// Static grid centred on the quad — the circular pool doesn't follow the camera
-			_Shader.Attributes.Set("SnapPosition", (Vector2)WorldPosition);
-			_Shader.Attributes.Set("WaterZ", WorldPosition.z);
+			_CommandList.Attributes.Set("SnapPosition", (Vector2)WorldPosition);
+			_CommandList.Attributes.Set("WaterZ", WorldPosition.z);
 
-			_Shader.Attributes.Set("TilingScale", 1.0f / outerExtent);
-			_Shader.Attributes.Set("ClampToBounds", false);
+			_CommandList.Attributes.Set("TilingScale", 1.0f / outerExtent);
+			_CommandList.Attributes.Set("ClampToBounds", false);
 
-			_Shader.Dispatch(verticesPerSide * verticesPerSide, 1, 1);
+			_CommandList.DispatchCompute(_Shader, verticesPerSide * verticesPerSide, 1, 1);
 
 			return;
 		}
@@ -469,41 +463,41 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			float snapX = MathF.Floor(clipmapAnchor.x / cellSize) * cellSize;
 			float snapY = MathF.Floor(clipmapAnchor.y / cellSize) * cellSize;
 
-			_Shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
-			_Shader.Attributes.Set("VertexOffset", ring * verticesPerRing);
+			_CommandList.Attributes.Set("VertexBuffer", m_VertexBuffer);
+			_CommandList.Attributes.Set("VertexOffset", ring * verticesPerRing);
 
-			_Shader.Attributes.Set("GridWidth", CellsPerRing);
-			_Shader.Attributes.Set("CellSize", cellSize);
+			_CommandList.Attributes.Set("GridWidth", CellsPerRing);
+			_CommandList.Attributes.Set("CellSize", cellSize);
 
-			_Shader.Attributes.Set("SnapPosition", new Vector2(snapX, snapY));
-			_Shader.Attributes.Set("WaterZ", WorldPosition.z);
+			_CommandList.Attributes.Set("SnapPosition", new Vector2(snapX, snapY));
+			_CommandList.Attributes.Set("WaterZ", WorldPosition.z);
 
-			_Shader.Attributes.Set("TilingScale", 1.0f / outerExtent);
-			_Shader.Attributes.Set("ClampToBounds", true);
+			_CommandList.Attributes.Set("TilingScale", 1.0f / outerExtent);
+			_CommandList.Attributes.Set("ClampToBounds", true);
 
-			_Shader.Attributes.Set("BoundsMin", new Vector2(boundsMinX, boundsMinY));
-			_Shader.Attributes.Set("BoundsMax", new Vector2(boundsMaxX, boundsMaxY));
+			_CommandList.Attributes.Set("BoundsMin", new Vector2(boundsMinX, boundsMinY));
+			_CommandList.Attributes.Set("BoundsMax", new Vector2(boundsMaxX, boundsMaxY));
 
-			_Shader.Dispatch(verticesPerRing, 1, 1);
+			_CommandList.DispatchCompute(_Shader, verticesPerRing, 1, 1);
 		}
 	}
 
 
 
-	internal void BarrierTransition()
+	internal void BarrierTransition(CommandList _CommandList)
 	{
 		if (m_VertexBuffer.IsValid())
-			m_CommandList.ResourceBarrierTransition(m_VertexBuffer, ResourceState.UnorderedAccess, ResourceState.VertexOrIndexBuffer);
+			_CommandList?.ResourceBarrierTransition(m_VertexBuffer, ResourceState.UnorderedAccess, ResourceState.VertexOrIndexBuffer);
 	}
 
 
 
-	internal void Draw()
+	internal void Draw(CommandList _CommandList)
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
 		
-		m_CommandList.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
+		_CommandList?.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
 	}
 
 

@@ -13,6 +13,8 @@ public sealed class MoveModeSwimFixed : MoveMode
 	private bool m_WasInWater;
 	private bool m_HasTouchedWater;
 	
+	private TimeSince m_TimeSinceStep;
+	
 	[Property]
 	public int Priority { get; set; } = 10;
 
@@ -26,6 +28,7 @@ public sealed class MoveModeSwimFixed : MoveMode
 	
 	[Property, Group("Sounds")] public SoundEvent WaterSplashEnter { get; set; }
 	[Property, Group("Sounds")] public SoundEvent WaterSplashExit { get; set; }
+	[Property, Group("Sounds")] public SoundEvent WaterFootsteps { get; set; }
 	[Property, Group("Sounds")] public SoundPointComponent WaterSwimmingLoop { get; set; }
 
 	protected override void OnStart()
@@ -87,6 +90,16 @@ public sealed class MoveModeSwimFixed : MoveMode
 			}
 			
 			m_WasInWater = m_HasTouchedWater;
+		}
+
+		const float epsilon = 0.001f;
+		float speed = (Controller.WalkSpeed * 0.5f / Controller.Velocity.Length + epsilon).Clamp(0.2f, 1.0f);
+
+		if (m_HasTouchedWater && Controller.IsOnGround && Controller.Velocity.Length > 10 && m_TimeSinceStep > speed)
+		{
+			m_TimeSinceStep = 0;
+			
+			Sound.Play(WaterFootsteps, WorldPosition);
 		}
 	}
 

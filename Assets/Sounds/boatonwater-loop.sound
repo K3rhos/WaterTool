@@ -5,7 +5,7 @@
   "Decibels": 70,
   "SelectionMode": "Random",
   "Sounds": [
-    "sounds/water/water-transition-in.vsnd"
+    "sounds/boatonwater-loop.vsnd"
   ],
   "OcclusionEnabled": true,
   "Occlusion": true,
@@ -15,7 +15,7 @@
   "Transmission": true,
   "OcclusionRadius": 64,
   "DistanceAttenuation": true,
-  "Distance": 5000,
+  "Distance": 7000,
   "Falloff": [
     {
       "x": 0,
@@ -47,8 +47,8 @@
     }
   ],
   "DefaultMixer": {
-    "Name": "game",
-    "Id": "83f4a5d3-8a80-4647-a7f0-1ca01cc3ec35"
+    "Name": "unknown",
+    "Id": "00000000-0000-0000-0000-000000000000"
   },
   "__references": [],
   "__version": 1

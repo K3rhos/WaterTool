@@ -5,7 +5,11 @@
   "Decibels": 70,
   "SelectionMode": "Random",
   "Sounds": [
-    "sounds/water/water-transition-in.vsnd"
+    "sounds/waterfootsteps/waterfootstep-01.vsnd",
+    "sounds/waterfootsteps/waterfootstep-02.vsnd",
+    "sounds/waterfootsteps/waterfootstep-03.vsnd",
+    "sounds/waterfootsteps/waterfootstep-04.vsnd",
+    "sounds/waterfootsteps/waterfootstep-05.vsnd"
   ],
   "OcclusionEnabled": true,
   "Occlusion": true,
@@ -48,7 +52,7 @@
   ],
   "DefaultMixer": {
     "Name": "game",
-    "Id": "83f4a5d3-8a80-4647-a7f0-1ca01cc3ec35"
+    "Id": "86a3ddfd-caff-4f0f-83dc-29b651927fc0"
   },
   "__references": [],
   "__version": 1

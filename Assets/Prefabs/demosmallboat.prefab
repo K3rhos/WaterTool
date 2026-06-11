@@ -137,6 +137,13 @@
         "__guid": "e00124ac-1ae6-40c8-8928-1ef244875b96",
         "__enabled": true,
         "Flags": 0,
+        "BoatOnWaterLoop": {
+          "_type": "component",
+          "component_id": "4e4a2dd3-8a28-4f1d-aab5-f76463fdf6f1",
+          "go": "e431b534-e973-456e-9a5e-fb377e380164",
+          "component_type": "SoundPointComponent"
+        },
+        "BoatUnderWaves": "sounds/boatwaves/boatwaves.sound",
         "ExitPoint": null,
         "EyePosition": null,
         "OnComponentDestroy": null,
@@ -145,14 +152,14 @@
         "OnComponentFixedUpdate": null,
         "OnComponentStart": null,
         "OnComponentUpdate": null,
-        "ReverseForce": 80000,
+        "ReverseForce": 90000,
         "SeatPosition": {
           "_type": "gameobject",
           "go": "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37"
         },
         "Stability": 50000,
         "TerminalSpeed": 800,
-        "ThrustForce": 200000,
+        "ThrustForce": 110000,
         "TooltipIcon": "airline_seat_recline_normal",
         "TooltipTitle": "Drive",
         "TurnForce": 60000
@@ -187,6 +194,74 @@
         "NetworkTransmit": true,
         "OwnerTransfer": 1,
         "Components": [],
+        "Children": []
+      },
+      {
+        "__guid": "e431b534-e973-456e-9a5e-fb377e380164",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "BoatOnWaterLoop",
+        "Position": "0,0,0",
+        "Rotation": "0,0,0,1",
+        "Scale": "1,1,1",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 2,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.SoundPointComponent",
+            "__guid": "4e4a2dd3-8a28-4f1d-aab5-f76463fdf6f1",
+            "__enabled": false,
+            "Flags": 0,
+            "Distance": 4000,
+            "DistanceAttenuation": true,
+            "DistanceAttenuationOverride": true,
+            "Falloff": [
+              {
+                "x": 0,
+                "y": 1,
+                "in": 3.1415927,
+                "out": -3.1415927,
+                "mode": "Mirrored"
+              },
+              {
+                "x": 1,
+                "y": 0,
+                "in": 0,
+                "out": 0,
+                "mode": "Mirrored"
+              }
+            ],
+            "Force2d": false,
+            "MaxRepeatTime": 0,
+            "MinRepeatTime": 0,
+            "OcclusionEnabled": false,
+            "OcclusionOverride": false,
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "Pitch": 1,
+            "PlayOnStart": false,
+            "Repeat": true,
+            "ReverbEnabled": false,
+            "ReverbOverride": false,
+            "SoundEvent": "sounds/boatonwater-loop.sound",
+            "SoundOverride": true,
+            "StopOnNew": false,
+            "TargetMixer": {
+              "Name": "game",
+              "Id": "75327007-d00d-402c-97f1-a4d71e1d0c3b"
+            },
+            "Volume": 1
+          }
+        ],
         "Children": []
       }
     ],

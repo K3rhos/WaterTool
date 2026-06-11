@@ -1,11 +1,14 @@
 {
   "UI": false,
-  "Volume": "1",
-  "Pitch": "1",
+  "Volume": "2",
+  "Pitch": "1.5",
   "Decibels": 70,
   "SelectionMode": "Random",
   "Sounds": [
-    "sounds/water/water-transition-in.vsnd"
+    "sounds/boatwaves/boatwaves-01.vsnd",
+    "sounds/boatwaves/boatwaves-02.vsnd",
+    "sounds/boatwaves/boatwaves-03.vsnd",
+    "sounds/boatwaves/boatwaves-04.vsnd"
   ],
   "OcclusionEnabled": true,
   "Occlusion": true,
@@ -15,7 +18,7 @@
   "Transmission": true,
   "OcclusionRadius": 64,
   "DistanceAttenuation": true,
-  "Distance": 5000,
+  "Distance": 6000,
   "Falloff": [
     {
       "x": 0,
@@ -48,7 +51,7 @@
   ],
   "DefaultMixer": {
     "Name": "game",
-    "Id": "83f4a5d3-8a80-4647-a7f0-1ca01cc3ec35"
+    "Id": "75327007-d00d-402c-97f1-a4d71e1d0c3b"
   },
   "__references": [],
   "__version": 1

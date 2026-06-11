@@ -10,6 +10,9 @@ namespace RedSnail.WaterTool;
 [Title( "Demo Boat Controller" ), Group( "Water" ), Icon( "directions_boat" )]
 public sealed class BoatController : Component, Component.IPressable, ISitTarget
 {
+	private TimeSince m_TimeSinceLastUnderWave;
+	private float m_LastHitTimer = 1.0f;
+	
 	[Property, Group( "Seat" )] public GameObject SeatPosition { get; set; }
 	[Property, Group( "Seat" )] public GameObject EyePosition  { get; set; }
 	[Property, Group( "Seat" )] public GameObject ExitPoint    { get; set; }
@@ -22,6 +25,9 @@ public sealed class BoatController : Component, Component.IPressable, ISitTarget
 
 	[Property, Group( "Interaction" )] public string TooltipTitle { get; set; } = "Drive";
 	[Property, Group( "Interaction" )] public string TooltipIcon  { get; set; } = "directions_boat";
+
+	[Property, Group( "Sounds" )] public SoundEvent BoatUnderWaves  { get; set; }
+	[Property, Group( "Sounds" )] public SoundPointComponent BoatOnWaterLoop  { get; set; }
 
 	private Rigidbody m_Rigidbody;
 	private Buoyancy m_Buoyancy;
@@ -46,6 +52,7 @@ public sealed class BoatController : Component, Component.IPressable, ISitTarget
 		if ( !m_Rigidbody.IsValid() )
 			return;
 
+		HandleSounds();
 		Stabilize();
 
 		if ( IsOccupied )
@@ -184,6 +191,61 @@ public sealed class BoatController : Component, Component.IPressable, ISitTarget
 		// Speed dependent damping so the boat decelerates naturally
 		float damping = ( TerminalSpeed / ( speed + 0.001f ) ) * 0.5f;
 		m_Rigidbody.LinearDamping = float.Clamp( damping, 0.5f, 5f );
+	}
+	
+	
+	
+	private void HandleSounds()
+	{
+		if (Scene.Camera is not CameraComponent camera)
+			return;
+
+		HandleWavesSound(camera);
+		HandleMovementSound(camera);
+	}
+	
+	
+	
+	private void HandleWavesSound(CameraComponent _Camera)
+	{
+		if (!BoatUnderWaves.IsValid())
+			return;
+		
+		float distance = _Camera.WorldPosition.DistanceSquared(WorldPosition);
+		float MaxDistanceSq = BoatUnderWaves.Distance * BoatUnderWaves.Distance;
+
+		float speed = m_Rigidbody.Velocity.WithZ(0).Length;
+		
+		if (speed < 10.0f && distance < MaxDistanceSq && m_Buoyancy.IsTouchingWater && m_TimeSinceLastUnderWave > m_LastHitTimer)
+		{
+			Sound.Play(BoatUnderWaves, WorldPosition);
+
+			m_TimeSinceLastUnderWave = 0;
+			m_LastHitTimer = Game.Random.Float(2.0f, 10.0f);
+		}
+	}
+	
+	
+	
+	private void HandleMovementSound(CameraComponent _Camera)
+	{
+		if (!BoatOnWaterLoop.IsValid())
+			return;
+		
+		float distance = _Camera.WorldPosition.DistanceSquared(WorldPosition);
+		float MaxDistanceSq = BoatOnWaterLoop.Distance * BoatOnWaterLoop.Distance;
+		
+		if (distance > MaxDistanceSq)
+		{
+			// Disable the sound point if too far away from the camera (Avoid wasting resources)
+			BoatOnWaterLoop.Enabled = false;
+		}
+		else
+		{
+			BoatOnWaterLoop.SoundOverride = true;
+			BoatOnWaterLoop.Volume = m_Rigidbody.Velocity.WithZ(0).Length.Remap(0.0f, 200.0f);
+			BoatOnWaterLoop.Enabled = true;
+		}
 	}
 	
 	

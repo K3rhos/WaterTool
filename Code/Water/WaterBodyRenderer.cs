@@ -43,7 +43,6 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 	private GpuBuffer<Vector4> m_WaterExclusionVolumeBuffer;
 	private int m_TotalIndexCount;
 	private readonly RenderAttributes m_DrawAttributes = new();
-	private CommandList m_CommandList;
 	private int m_LastConfigHash;
 	private readonly Vector4[] m_WaterInclusionVolumeData = new Vector4[MAX_WATER_INCLUSION_VOLUMES * WATER_INCLUSION_VOLUME_ROWS];
 	private readonly Vector4[] m_WaterExclusionVolumeData = new Vector4[MAX_WATER_EXCLUSION_VOLUMES * WATER_EXCLUSION_VOLUME_ROWS];
@@ -85,7 +84,6 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 
 		m_VertexBuffer = default;
 		m_IndexBuffer = default;
-		m_CommandList = null;
 		m_WaterInclusionVolumeBuffer?.Dispose();
 		m_WaterInclusionVolumeBuffer = null;
 		m_WaterExclusionVolumeBuffer?.Dispose();
@@ -109,11 +107,6 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 		UpdateShaderAttributes();
 	}
 
-	public void CacheCommandList(CommandList commandList)
-	{
-		m_CommandList ??= commandList;
-	}
-
 	internal BBox GetWorldBounds2D()
 	{
 		Vector3 right = WorldRotation.Right * (Length / 2.0f);
@@ -132,7 +125,12 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 		return new BBox(new Vector3(minX, minY, WorldPosition.z - Depth), new Vector3(maxX, maxY, WorldPosition.z));
 	}
 
-	internal void DispatchCompute(ComputeShader shader, Vector3 cameraPosition)
+	// Records the clipmap compute dispatches into the command list as DEFERRED commands.
+	// They run later, on the render thread, when the camera executes the list - so the
+	// per-ring attributes are set through the command list (which writes Graphics.Attributes
+	// at execute time, exactly what CommandList.DispatchCompute reads) rather than on the
+	// shared shader instance.
+	internal void RecordCompute(CommandList commandList, ComputeShader shader, Vector3 cameraPosition)
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
@@ -149,32 +147,32 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 			float snapX = MathF.Floor(clipmapAnchor.x / cellSize) * cellSize;
 			float snapY = MathF.Floor(clipmapAnchor.y / cellSize) * cellSize;
 
-			shader.Attributes.Set("VertexBuffer", m_VertexBuffer);
-			shader.Attributes.Set("VertexOffset", ring * verticesPerRing);
-			shader.Attributes.Set("GridWidth", CellsPerRing);
-			shader.Attributes.Set("CellSize", cellSize);
-			shader.Attributes.Set("SnapPosition", new Vector2(snapX, snapY));
-			shader.Attributes.Set("WaterZ", WorldPosition.z);
-			shader.Attributes.Set("TilingScale", 1.0f / OuterExtent);
-			shader.Attributes.Set("ClampToBounds", false);
-			shader.Attributes.Set("BoundsMin", new Vector2(localBounds.Mins.x, localBounds.Mins.y));
-			shader.Attributes.Set("BoundsMax", new Vector2(localBounds.Maxs.x, localBounds.Maxs.y));
-			shader.Dispatch(verticesPerRing, 1, 1);
+			commandList.Attributes.Set("VertexBuffer", m_VertexBuffer);
+			commandList.Attributes.Set("VertexOffset", ring * verticesPerRing);
+			commandList.Attributes.Set("GridWidth", CellsPerRing);
+			commandList.Attributes.Set("CellSize", cellSize);
+			commandList.Attributes.Set("SnapPosition", new Vector2(snapX, snapY));
+			commandList.Attributes.Set("WaterZ", WorldPosition.z);
+			commandList.Attributes.Set("TilingScale", 1.0f / OuterExtent);
+			commandList.Attributes.Set("ClampToBounds", false);
+			commandList.Attributes.Set("BoundsMin", new Vector2(localBounds.Mins.x, localBounds.Mins.y));
+			commandList.Attributes.Set("BoundsMax", new Vector2(localBounds.Maxs.x, localBounds.Maxs.y));
+			commandList.DispatchCompute(shader, verticesPerRing, 1, 1);
 		}
 	}
 
-	internal void BarrierTransition()
+	internal void BarrierTransition(CommandList _CommandList)
 	{
 		if (m_VertexBuffer.IsValid())
-			m_CommandList.ResourceBarrierTransition(m_VertexBuffer, ResourceState.UnorderedAccess, ResourceState.VertexOrIndexBuffer);
+			_CommandList?.ResourceBarrierTransition(m_VertexBuffer, ResourceState.UnorderedAccess, ResourceState.VertexOrIndexBuffer);
 	}
 
-	internal void Draw()
+	internal void Draw(CommandList _CommandList)
 	{
 		if (!ParticipatesInRendering || !HasValidBuffers)
 			return;
 		
-		m_CommandList.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
+		_CommandList?.DrawIndexed(m_VertexBuffer, m_IndexBuffer, Material, 0, m_TotalIndexCount, m_DrawAttributes);
 	}
 
 	private void UpdateShaderAttributes()

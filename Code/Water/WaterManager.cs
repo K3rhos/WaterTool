@@ -16,9 +16,16 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 	[Property(Title = "Underwater Volume"), Group("Post Processing")] public PostProcessVolume UnderwaterPostProcessVolume { get; set; }
 
-	private SceneCustomObject m_SceneObject;
 	private readonly ComputeShader m_ComputeShader;
-	private readonly CommandList m_CommandList = new("Water Quads");
+
+	// Double-buffered command lists. We BUILD into the disabled "back" list on the main
+	// thread (FinishUpdate); the camera EXECUTES the enabled "front" list on a render
+	// worker thread. Because the recorded list and the executing list are never the same
+	// instance in a frame, the engine never iterates a list while we're resetting it -
+	// which is the multithreaded "CommandList was null" crash. Both stay attached to the
+	// camera for its lifetime; each frame we just flip which one is Enabled.
+	private CommandList m_FrontCommandList = new("Water Quads (A)") { Enabled = true };
+	private CommandList m_BackCommandList = new("Water Quads (B)") { Enabled = false };
 	private CameraComponent m_LastCamera;
 	private Vector3 m_CameraPosition;
 	private readonly WaterDefinition m_DefaultProfile;
@@ -35,32 +42,26 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 	{
 		m_ComputeShader = new ComputeShader("water_clipmap_cs");
 
-		m_SceneObject = new SceneCustomObject(_Scene.SceneWorld)
-		{
-			RenderOverride = RenderAll,
-			Transform = new Transform(Vector3.Zero, Rotation.Identity),
-			Flags =
-			{
-				IsOpaque = false,
-				IsTranslucent = true,
-				WantsFrameBufferCopy = false,
-				WantsPrePass = false
-			}
-		};
-
 		m_DefaultProfile = new WaterDefinition();
 
 		Listen(Stage.StartUpdate, 0, Update, "WaterManagerUpdate");
+
+		// Build the render command list at the very end of the main-thread update, after
+		// every water component has refreshed its buffers and attributes. Recording here -
+		// single-threaded, never inside a render-thread RenderOverride - is what stops
+		// Reset()/record from racing the engine's command-list execution on the GPU thread.
+		Listen(Stage.FinishUpdate, 0, BuildCommandList, "WaterManagerBuild");
 	}
 
 
 
 	public override void Dispose()
 	{
-		m_LastCamera?.RemoveCommandList(m_CommandList);
-
-		m_SceneObject?.Delete();
-		m_SceneObject = null;
+		if (m_LastCamera.IsValid())
+		{
+			m_LastCamera.RemoveCommandList(m_FrontCommandList);
+			m_LastCamera.RemoveCommandList(m_BackCommandList);
+		}
 
 		m_RippleBuffer?.Dispose();
 		m_RippleBuffer = null;
@@ -73,12 +74,23 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 	private void Update()
 	{
 		var camera = Scene.Camera;
-
+		
 		if (camera != m_LastCamera)
 		{
-			m_LastCamera?.RemoveCommandList(m_CommandList);
-			
-			camera?.AddCommandList(m_CommandList, RenderStage.AfterTransparent);
+			// Move both command lists to the new camera. We only add/remove on a camera
+			// change (rare) - never per frame - so we don't fight the worker thread that
+			// reads the camera's command-list collection while rendering.
+			if (m_LastCamera.IsValid())
+			{
+				m_LastCamera.RemoveCommandList(m_FrontCommandList);
+				m_LastCamera.RemoveCommandList(m_BackCommandList);
+			}
+
+			if (camera.IsValid())
+			{
+				camera.AddCommandList(m_FrontCommandList, RenderStage.AfterTransparent);
+				camera.AddCommandList(m_BackCommandList, RenderStage.AfterTransparent);
+			}
 
 			m_LastCamera = camera;
 		}
@@ -97,9 +109,9 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 		UpdateRipples();
 	}
-
-
-
+	
+	
+	
 	internal void Register(WaterQuad quad)
 	{
 		if (!Quads.Contains(quad))
@@ -191,12 +203,14 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 
 
-	private void RenderAll(SceneObject _)
+	private void BuildCommandList()
 	{
-		if (Graphics.LayerType != SceneLayerType.Translucent)
-			return;
+		// Record into the back (disabled) list. The engine only executes the enabled
+		// front list, so this instance is guaranteed idle - safe to reset and record
+		// from the main thread with no lock and no race against the render thread.
+		var cl = m_BackCommandList;
 
-		m_CommandList.Reset();
+		cl.Reset();
 
 		bool hasAnythingToRender = false;
 
@@ -206,8 +220,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 				continue;
 
 			hasAnythingToRender = true;
-			renderer.CacheCommandList(m_CommandList);
-			renderer.DispatchCompute(m_ComputeShader, m_CameraPosition);
+			renderer.RecordCompute(cl, m_ComputeShader, m_CameraPosition);
 		}
 
 		foreach (var quad in Quads)
@@ -216,45 +229,53 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 				continue;
 
 			hasAnythingToRender = true;
-			quad.CacheCommandList(m_CommandList);
-			quad.DispatchCompute(m_ComputeShader, m_CameraPosition);
+			quad.RecordCompute(cl, m_ComputeShader, m_CameraPosition);
 		}
 
-		if (!hasAnythingToRender)
-			return;
-
-		foreach (var renderer in QuadRenderers)
+		if (hasAnythingToRender)
 		{
-			if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
-				continue;
+			foreach (var renderer in QuadRenderers)
+			{
+				if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
+					continue;
 
-			renderer.BarrierTransition();
+				renderer.BarrierTransition(cl);
+			}
+
+			foreach (var quad in Quads)
+			{
+				if (!quad.IsValid() || !quad.ParticipatesInRendering)
+					continue;
+
+				quad.BarrierTransition(cl);
+			}
+
+			cl.Attributes.GrabFrameTexture("FrameBufferCopyTexture");
+
+			foreach (var renderer in QuadRenderers)
+			{
+				if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
+					continue;
+
+				renderer.Draw(cl);
+			}
+
+			foreach (var quad in Quads)
+			{
+				if (!quad.IsValid() || !quad.ParticipatesInRendering)
+					continue;
+
+				quad.Draw(cl);
+			}
 		}
 
-		foreach (var quad in Quads)
-		{
-			if (!quad.IsValid() || !quad.ParticipatesInRendering)
-				continue;
+		// Publish the freshly-built list and retire the previous one, then swap roles so
+		// next frame we record into the one the GPU is no longer touching. Enable the new
+		// list before disabling the old, so a worker reading mid-swap sees both (a
+		// harmless double draw) rather than neither (a one-frame gap).
+		m_BackCommandList.Enabled = true;
+		m_FrontCommandList.Enabled = false;
 
-			quad.BarrierTransition();
-		}
-
-		m_CommandList.Attributes.GrabFrameTexture("FrameBufferCopyTexture");
-
-		foreach (var renderer in QuadRenderers)
-		{
-			if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
-				continue;
-
-			renderer.Draw();
-		}
-
-		foreach (var quad in Quads)
-		{
-			if (!quad.IsValid() || !quad.ParticipatesInRendering)
-				continue;
-
-			quad.Draw();
-		}
+		(m_FrontCommandList, m_BackCommandList) = (m_BackCommandList, m_FrontCommandList);
 	}
 }
