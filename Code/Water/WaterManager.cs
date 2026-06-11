@@ -73,6 +73,10 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 	private void Update()
 	{
+		// Don't execute this on a dedicated server
+		if (Application.IsDedicatedServer)
+			return;
+		
 		var camera = Scene.Camera;
 		
 		if (camera != m_LastCamera)
@@ -205,6 +209,10 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 	private void BuildCommandList()
 	{
+		// Don't execute this on a dedicated server
+		if (Application.IsDedicatedServer)
+			return;
+		
 		// Record into the back (disabled) list. The engine only executes the enabled
 		// front list, so this instance is guaranteed idle - safe to reset and record
 		// from the main thread with no lock and no race against the render thread.
