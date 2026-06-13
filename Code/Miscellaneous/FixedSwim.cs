@@ -26,6 +26,10 @@ public sealed class MoveModeSwimFixed : MoveMode
 	/// </summary>
 	public float WaterLevel { get; private set; }
 	
+	// How hard the current grips the hull, the rate (per second, at full submersion)
+	// at which the body's velocity is pulled toward the flow velocity.
+	[Property, Group("River Current"), Range(0.1f, 10.0f)] private float CurrentDrag { get; set; } = 1.5f;
+	
 	[Property, Group("Sounds")] public SoundEvent WaterSplashEnter { get; set; }
 	[Property, Group("Sounds")] public SoundEvent WaterSplashExit { get; set; }
 	[Property, Group("Sounds")] public SoundEvent WaterFootsteps { get; set; }
@@ -101,6 +105,11 @@ public sealed class MoveModeSwimFixed : MoveMode
 			
 			Sound.Play(WaterFootsteps, WorldPosition);
 		}
+
+		if (Controller.IsSwimming)
+		{
+			ApplyCurrentForce();
+		}
 	}
 
 	void UpdateWaterLevel()
@@ -135,6 +144,19 @@ public sealed class MoveModeSwimFixed : MoveMode
 		{
 			WaterLevel = waterLevel;
 		}
+	}
+	
+	private void ApplyCurrentForce()
+	{
+		Vector3 flowVelocity = WaterManager.GetFlowVelocityAt(WorldPosition);
+
+		if (flowVelocity.LengthSquared < 0.01f)
+			return;
+		
+		Vector3 relative = flowVelocity - Controller.Body.Velocity.WithZ(0.0f);
+		Vector3 force = relative * (Controller.Body.Mass * CurrentDrag);
+		
+		Controller.Body.ApplyForce(force);
 	}
 
 	public override Vector3 UpdateMove( Rotation eyes, Vector3 input )

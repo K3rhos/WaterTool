@@ -1,0 +1,59 @@
+// Water calm volumes — OBB regions that settle the water to flat. Used in the VS to
+// scale down wave displacement (and therefore the reconstructed normals) so two water
+// surfaces can be joined seamlessly (e.g. a river mouth meeting an ocean).
+//
+// Four float4 rows per volume:
+//   row0 = (Forward.xyz, HalfExtents.x)
+//   row1 = (Up.xyz,      HalfExtents.y)
+//   row2 = (Center.xyz,  HalfExtents.z)
+//   row3 = (Falloff, Strength, _, _)
+int g_iWaterCalmVolumeCount < Attribute("WaterCalmVolumeCount"); Default(0); >;
+StructuredBuffer<float4> g_vWaterCalmVolumeRows < Attribute("WaterCalmVolumeData"); >;
+
+// Returns the calm amount at a world position: 0 = full waves, 1 = perfectly flat.
+// Smoothly ramps from the core out to each volume's faces; volumes accumulate via max.
+float ComputeWaterCalm(float3 pos)
+{
+	if (g_iWaterCalmVolumeCount <= 0)
+		return 0.0;
+
+	float calm = 0.0;
+
+	[loop]
+	for (int i = 0; i < g_iWaterCalmVolumeCount; ++i)
+	{
+		int row = i * 4;
+
+		float4 row0 = g_vWaterCalmVolumeRows[row + 0];
+		float4 row1 = g_vWaterCalmVolumeRows[row + 1];
+		float4 row2 = g_vWaterCalmVolumeRows[row + 2];
+		float4 row3 = g_vWaterCalmVolumeRows[row + 3];
+
+		float3 vForward = row0.xyz;
+		float3 vUp      = row1.xyz;
+		float3 vCenter  = row2.xyz;
+		float3 vHalf    = float3(row0.w, row1.w, row2.w);
+		float  falloff  = row3.x;
+		float  strength = row3.y;
+
+		float3 vRight = cross(vUp, vForward);
+		float3 d = pos - vCenter;
+
+		// Normalized OBB coordinate on each axis: 0 at center, 1 at the face
+		float3 n = float3(
+			abs(dot(d, vForward)) / max(vHalf.x, 0.001),
+			abs(dot(d, vRight))   / max(vHalf.y, 0.001),
+			abs(dot(d, vUp))      / max(vHalf.z, 0.001)
+		);
+
+		float nmax = max(n.x, max(n.y, n.z));
+
+		// 1 deep inside, ramping to 0 at the boundary over the falloff shell
+		float falloffStart = saturate(1.0 - falloff);
+		float volumeCalm = (1.0 - smoothstep(falloffStart, 1.0, nmax)) * strength;
+
+		calm = max(calm, volumeCalm);
+	}
+
+	return saturate(calm);
+}

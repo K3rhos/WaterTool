@@ -110,6 +110,7 @@
         "AirLeakRate": 0,
         "AngularDragCoefficient": 2,
         "Damping": 5,
+        "Drag": 1.5,
         "DragCoefficient": 1,
         "EmitEntryRipple": true,
         "EmitWakeRipple": true,
@@ -129,8 +130,7 @@
         "WakeRippleMinSpeed": 10,
         "WakeRippleStrength": 0.2,
         "WakeRippleWavelength": 70,
-        "WakeRippleWidth": 80,
-        "WaveTransportForce": 40
+        "WakeRippleWidth": 80
       },
       {
         "__type": "RedSnail.WaterTool.BoatController",
@@ -159,7 +159,7 @@
         },
         "Stability": 50000,
         "TerminalSpeed": 800,
-        "ThrustForce": 110000,
+        "ThrustForce": 200000,
         "TooltipIcon": "airline_seat_recline_normal",
         "TooltipTitle": "Drive",
         "TurnForce": 60000

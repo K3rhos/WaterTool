@@ -56,6 +56,7 @@
           "__guid": "359e72e0-5018-49c7-8439-17e3a774e7ce",
           "__enabled": true,
           "Flags": 0,
+          "Contribution": "Diffuse, Specular, Transmissive",
           "FogMode": "Enabled",
           "FogStrength": 1,
           "LightColor": "0.91373,0.98039,1,1",
@@ -450,6 +451,7 @@
           "__guid": "390270dc-c36b-401a-b1ff-357f46080d94",
           "__enabled": true,
           "Flags": 0,
+          "CurrentDrag": 2,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -15456,6 +15458,46 @@
           }
         },
         {
+          "__guid": "683ef11a-f5b3-4045-98c3-5c3d11af1e84",
+          "__version": 2,
+          "__Prefab": "prefabs/demosmallboat.prefab",
+          "__PrefabInstancePatch": {
+            "AddedObjects": [],
+            "RemovedObjects": [],
+            "PropertyOverrides": [
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "d5c96e50-f9a2-49db-b91a-f3fa5e0aa513"
+                },
+                "Property": "Position",
+                "Value": "2783.31934,-469.274048,661.595398"
+              },
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "d5c96e50-f9a2-49db-b91a-f3fa5e0aa513"
+                },
+                "Property": "Rotation",
+                "Value": "0.0284175035,0.100862041,0.957227111,0.269695163"
+              }
+            ],
+            "MovedObjects": []
+          },
+          "__PrefabIdToInstanceId": {
+            "d5c96e50-f9a2-49db-b91a-f3fa5e0aa513": "683ef11a-f5b3-4045-98c3-5c3d11af1e84",
+            "cf43f220-ab82-44e1-b528-e25c2089ca0f": "fb4a7ed8-b798-4769-82a9-37b6c6a2e416",
+            "570331e7-deef-4532-9943-c2e9c76d126a": "e38518bf-697f-4c51-96e6-b4042bd69cae",
+            "63e564b7-e42b-481c-a40a-0df4523b08a6": "5ac2a567-d8c4-4e69-bc8d-4cc10e5afb95",
+            "d36d67d0-5dbf-42d1-9a07-d9428d0a055e": "25faacf1-b606-467f-9b62-fc23c2734820",
+            "e00124ac-1ae6-40c8-8928-1ef244875b96": "1fdbfe2a-4e08-4861-bd20-15f18b02da60",
+            "440d8765-5a2d-40ef-80e5-009026de8e65": "132cfeb9-241e-47d1-90f8-581dc85731df",
+            "62e0bd82-9e90-4b2e-9a43-2a8b11dbbc37": "e5f331ae-f02c-42e9-a0b7-b6ca5f3ae9cb",
+            "e431b534-e973-456e-9a5e-fb377e380164": "6f22f33d-4d1f-4adc-a1e5-b391f15e97f2",
+            "4e4a2dd3-8a28-4f1d-aab5-f76463fdf6f1": "0592cbd2-7770-4606-9c38-3f47a3a7c18a"
+          }
+        },
+        {
           "__guid": "a6aca3c0-c1f7-4520-a316-03ce6f78cb31",
           "__version": 2,
           "__Prefab": "prefabs/demosmallboat.prefab",
@@ -15608,6 +15650,76 @@
             "87a210b9-3ea2-4310-b948-6dfe71e5cae9": "e8255fe6-6117-4ad6-88eb-da4c99bc9030",
             "87e3cdf7-8820-422b-942f-ba063a554ee5": "f4de5008-4202-43bb-a58a-7bd4d7432c56",
             "7cc7f95d-cf8d-461c-b3e5-cd7104de56c9": "f8be7307-6bc2-41fd-a49a-05fbfc93538b"
+          }
+        },
+        {
+          "__guid": "9b85c1b5-8f93-4669-8651-a5b777d882bc",
+          "__version": 2,
+          "__Prefab": "prefabs/democube.prefab",
+          "__PrefabInstancePatch": {
+            "AddedObjects": [],
+            "RemovedObjects": [],
+            "PropertyOverrides": [
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "150830bf-b557-4ea2-8234-c0ddbd638b9e"
+                },
+                "Property": "Position",
+                "Value": "3313.46948,-377.463257,633.117432"
+              },
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "150830bf-b557-4ea2-8234-c0ddbd638b9e"
+                },
+                "Property": "Rotation",
+                "Value": "-0.138064146,-0.000514409505,-0.0303382371,0.989958405"
+              }
+            ],
+            "MovedObjects": []
+          },
+          "__PrefabIdToInstanceId": {
+            "150830bf-b557-4ea2-8234-c0ddbd638b9e": "9b85c1b5-8f93-4669-8651-a5b777d882bc",
+            "5d09ef65-1e7d-4031-823a-ad62cf67e39c": "5991b298-861f-4fa9-8842-aaa9004ba69e",
+            "87a210b9-3ea2-4310-b948-6dfe71e5cae9": "2484d72f-1dad-43ec-9e73-2fcced4085d4",
+            "87e3cdf7-8820-422b-942f-ba063a554ee5": "7eb6329a-26db-4a06-b790-d666424c49d2",
+            "7cc7f95d-cf8d-461c-b3e5-cd7104de56c9": "f385ce53-8014-4bd8-a7bc-f5fe837fcf2e"
+          }
+        },
+        {
+          "__guid": "c28161b8-f5c3-4925-b21a-845d76ae2891",
+          "__version": 2,
+          "__Prefab": "prefabs/democube.prefab",
+          "__PrefabInstancePatch": {
+            "AddedObjects": [],
+            "RemovedObjects": [],
+            "PropertyOverrides": [
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "150830bf-b557-4ea2-8234-c0ddbd638b9e"
+                },
+                "Property": "Position",
+                "Value": "3565.09009,-24.7940369,632.008545"
+              },
+              {
+                "Target": {
+                  "Type": "GameObject",
+                  "IdValue": "150830bf-b557-4ea2-8234-c0ddbd638b9e"
+                },
+                "Property": "Rotation",
+                "Value": "0.145737693,0,0,0.989323258"
+              }
+            ],
+            "MovedObjects": []
+          },
+          "__PrefabIdToInstanceId": {
+            "150830bf-b557-4ea2-8234-c0ddbd638b9e": "c28161b8-f5c3-4925-b21a-845d76ae2891",
+            "5d09ef65-1e7d-4031-823a-ad62cf67e39c": "81ec112e-e3f3-4a0b-9946-777857b08e9b",
+            "87a210b9-3ea2-4310-b948-6dfe71e5cae9": "b4a49c01-a63e-45e6-9ade-5610fbbcedca",
+            "87e3cdf7-8820-422b-942f-ba063a554ee5": "917f6b39-f9dd-4226-a7ff-6bf3a5829dcd",
+            "7cc7f95d-cf8d-461c-b3e5-cd7104de56c9": "bacc83c3-7691-4a53-905e-46460acbcab4"
           }
         },
         {
@@ -19039,6 +19151,118 @@
           "Children": []
         }
       ]
+    },
+    {
+      "__guid": "f50e0644-9644-4a60-91cf-cf343090eef8",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "River",
+      "Position": "2016.02246,-147.693695,651.390015",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "RedSnail.WaterTool.WaterFlow",
+          "__guid": "b5f0b7be-95b3-442f-9434-f51fa7a083ce",
+          "__enabled": true,
+          "Flags": 0,
+          "BaseCellSize": 16,
+          "Depth": 150,
+          "FlowFriction": 0.002,
+          "FlowGravity": 400,
+          "FlowSpeedReference": 100,
+          "InitialVelocity": 50,
+          "Material": "materials/oceanwater.vmat",
+          "MaxFlowSpeed": 800,
+          "MinFlowSpeed": 20,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "Spline": {
+            "Points": [
+              {
+                "Pos": "0,0,0",
+                "In": "-136.106155,5.83333349,5.46648693",
+                "Out": "136.106155,-5.83333349,-5.46648693"
+              },
+              {
+                "Pos": "816.636902,-35,-32.7989197",
+                "In": "-449.201019,29.8028164,25.2187576",
+                "Out": "449.201019,-29.8028164,-25.2187576"
+              },
+              {
+                "Pos": "2695.20605,-178.816895,-151.312546",
+                "In": "0,0,0",
+                "Out": "-0,-0,-0",
+                "Mode": "Mirrored"
+              }
+            ]
+          },
+          "TextureTilingMultiplier": 1,
+          "WaterType": "River",
+          "Width": 1000
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "3c38d381-c7d6-49ed-acb8-952614d2ec08",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "CalmVolume",
+      "Position": "5001.74121,-336.68454,507.626495",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "RedSnail.WaterTool.WaterCalmVolume",
+          "__guid": "152c9125-e903-488f-aac3-c9e5cffdfc8e",
+          "__enabled": true,
+          "Flags": 0,
+          "Falloff": 0.5,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SceneVolume": {
+            "Type": "Box",
+            "Sphere": {
+              "Center": "0,0,0",
+              "Radius": 10
+            },
+            "Box": {
+              "Mins": "-694.700867,-618.988342,-181.149323",
+              "Maxs": "286.987793,559.11853,168.739197"
+            },
+            "Capsule": {
+              "CenterA": "0,0,10",
+              "CenterB": "0,0,90",
+              "Radius": 10
+            }
+          },
+          "Strength": 1
+        }
+      ],
+      "Children": []
     }
   ],
   "SceneProperties": {
@@ -19066,17 +19290,17 @@
           "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
         }
       },
-      "Sandbox.SelectionSetsSystem": {
-        "Data": {
-          "SelectionSets": []
-        }
-      },
       "RedSnail.WaterTool.WaterManager": {
         "UnderwaterPostProcessVolume": {
           "_type": "component",
           "component_id": "d8810785-58c5-4ca2-b2d6-717e73dc3609",
           "go": "c0f1d3d3-c894-42a2-982d-88bb8785424e",
           "component_type": "PostProcessVolume"
+        }
+      },
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
         }
       }
     }

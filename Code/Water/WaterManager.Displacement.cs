@@ -97,6 +97,36 @@ public partial class WaterManager
 		return best;
 	}
 
+	// Rivers are the most specific water volume, so when a position falls inside a
+	// flow's footprint the flow provides the surface — quads/bodies are the fallback.
+	private static WaterFlow FindFlowAtPosition(Vector3 position, out float surfaceHeight, out Vector2 flowDirection, out float flowSpeed)
+	{
+		surfaceHeight = float.MinValue;
+		flowDirection = Vector2.Zero;
+		flowSpeed = 0.0f;
+
+		foreach (WaterFlow flow in Current?.Flows ?? [])
+		{
+			if (!flow.IsValid() || !flow.Active)
+				continue;
+
+			if (!flow.TryGetSurfaceAt(position, out float height, out Vector2 dir, out float speed))
+				continue;
+
+			// Finite depth: ignore the river once we're beneath its bed.
+			if (position.z < height - flow.Depth)
+				continue;
+
+			surfaceHeight = height;
+			flowDirection = dir;
+			flowSpeed = speed;
+
+			return flow;
+		}
+
+		return null;
+	}
+
 	// --- Public static wave queries ---
 
 	public static bool IsPositionInsideAny(Vector3 position)
@@ -128,11 +158,41 @@ public partial class WaterManager
 				return true;
 		}
 
+		foreach (WaterFlow flow in Current.Flows)
+		{
+			if (!flow.IsValid() || !flow.Active)
+				continue;
+
+			if (flow.ContainsPoint(position))
+				return true;
+		}
+
 		return false;
+	}
+
+	/// <summary>
+	/// World-space river current at a position (direction * speed, horizontal).
+	/// Zero when the position is not inside any WaterFlow. Buoyancy uses this to
+	/// drag floating bodies downstream.
+	/// </summary>
+	public static Vector3 GetFlowVelocityAt(Vector3 position)
+	{
+		WaterFlow flowSource = FindFlowAtPosition(position, out _, out Vector2 flowDir, out float flowSpeed);
+
+		return flowSource.IsValid()
+			? new Vector3(flowDir.x, flowDir.y, 0.0f) * flowSpeed
+			: Vector3.Zero;
 	}
 
 	public static Vector3 GetWaveDisplacementAt(Vector3 position)
 	{
+		// Rivers: no wave orbital displacement — the current is a velocity, applied
+		// through Buoyancy's current drag (GetFlowVelocityAt), not wave transport.
+		WaterFlow flowSource = FindFlowAtPosition(position, out _, out _, out _);
+
+		if (flowSource.IsValid())
+			return new Vector3(0.0f, 0.0f, Current?.ComputeRippleHeight(position) ?? 0.0f);
+
 		WaterQuad quad = FindQuadAtPosition(position);
 		WaterBody body = FindBodyAtPosition(position);
 
@@ -146,7 +206,10 @@ public partial class WaterManager
 		else if (body.IsValid()) displacement = body.GetWaveDisplacementAt(position);
 		else return Vector3.Zero;
 
-		// Interactive ripples add purely vertical displacement on top of the base waves
+		// Calm volumes damp the ambient wave displacement, matching the shader
+		displacement *= 1.0f - (Current?.ComputeCalm(position) ?? 0.0f);
+
+		// Interactive ripples add purely vertical displacement on top — NOT calmed
 		displacement.z += Current?.ComputeRippleHeight((Vector2)position) ?? 0.0f;
 
 		return displacement;
@@ -154,21 +217,36 @@ public partial class WaterManager
 
 	public static Vector3 GetWaveVelocityAt(Vector3 position)
 	{
+		// Rivers: the water itself moves — report the current as the wave velocity.
+		WaterFlow flowSource = FindFlowAtPosition(position, out _, out Vector2 flowDir, out float flowSpeed);
+
+		if (flowSource.IsValid())
+			return new Vector3(flowDir.x, flowDir.y, 0.0f) * flowSpeed;
+
 		WaterQuad quad = FindQuadAtPosition(position);
 		WaterBody body = FindBodyAtPosition(position);
 
+		Vector3 velocity;
+
 		if (quad.IsValid() && body.IsValid())
-			return quad.GetWaveHeightAt(position) >= body.GetWaveHeightAt(position)
+			velocity = quad.GetWaveHeightAt(position) >= body.GetWaveHeightAt(position)
 				? quad.GetWaveVelocityAt(position)
 				: body.GetWaveVelocityAt(position);
+		else if (quad.IsValid()) velocity = quad.GetWaveVelocityAt(position);
+		else if (body.IsValid()) velocity = body.GetWaveVelocityAt(position);
+		else return Vector3.Zero;
 
-		if (quad.IsValid()) return quad.GetWaveVelocityAt(position);
-		if (body.IsValid()) return body.GetWaveVelocityAt(position);
-		return Vector3.Zero;
+		// Calm volumes damp the wave motion too
+		return velocity * (1.0f - (Current?.ComputeCalm(position) ?? 0.0f));
 	}
 
 	public static float GetFlatWaterHeightAt(Vector3 position)
 	{
+		WaterFlow flowSource = FindFlowAtPosition(position, out float flowHeight, out _, out _);
+
+		if (flowSource.IsValid())
+			return flowHeight;
+
 		WaterQuad quad = FindQuadAtPosition(position);
 		WaterBody body = FindBodyAtPosition(position);
 
@@ -182,18 +260,43 @@ public partial class WaterManager
 
 	public static float GetWaterHeightAt(Vector3 position)
 	{
-		WaterQuad quad = FindQuadAtPosition(position);
-		WaterBody body = FindBodyAtPosition(position);
-
 		float height;
+		float flat;   // the flat (no-wave) surface for this source — calm target
 
-		if (quad.IsValid() && body.IsValid())
-			height = MathF.Max(quad.GetWaveHeightAt(position), body.GetWaveHeightAt(position));
-		else if (quad.IsValid()) height = quad.GetWaveHeightAt(position);
-		else if (body.IsValid()) height = body.GetWaveHeightAt(position);
-		else return float.MinValue;
+		WaterFlow flowSource = FindFlowAtPosition(position, out float flowHeight, out _, out _);
 
-		// Interactive ripples raise/lower the effective surface so physics tracks the visual
+		if (flowSource.IsValid())
+		{
+			// River surface: level across the channel, follows the spline downstream.
+			// (The shader's travelling waves are small detail — not mirrored on the CPU.)
+			// Already flat on the CPU, so a calm volume is a no-op here.
+			height = flowHeight;
+			flat = flowHeight;
+		}
+		else
+		{
+			WaterQuad quad = FindQuadAtPosition(position);
+			WaterBody body = FindBodyAtPosition(position);
+
+			if (quad.IsValid() && body.IsValid())
+			{
+				float qh = quad.GetWaveHeightAt(position);
+				float bh = body.GetWaveHeightAt(position);
+				if (qh >= bh) { height = qh; flat = quad.WorldPosition.z; }
+				else { height = bh; flat = body.GetSurfaceHeight(); }
+			}
+			else if (quad.IsValid()) { height = quad.GetWaveHeightAt(position); flat = quad.WorldPosition.z; }
+			else if (body.IsValid()) { height = body.GetWaveHeightAt(position); flat = body.GetSurfaceHeight(); }
+			else return float.MinValue;
+		}
+
+		// Calm volumes settle the ambient waves toward the flat surface, matching the
+		// shader, so buoyancy sits on the same level the player sees.
+		float calm = Current?.ComputeCalm(position) ?? 0.0f;
+		if (calm > 0.0f)
+			height = float.Lerp(height, flat, calm);
+
+		// Interactive ripples raise/lower the effective surface on top — NOT calmed
 		return height + (Current?.ComputeRippleHeight((Vector2)position) ?? 0.0f);
 	}
 }

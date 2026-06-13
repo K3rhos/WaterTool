@@ -565,6 +565,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		m_DrawAttributes.Set("NormalTiling", tiling);
 
 		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
+		WaterManager.Current?.ApplyCalmAttributes(m_DrawAttributes);
 
 		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
 		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);

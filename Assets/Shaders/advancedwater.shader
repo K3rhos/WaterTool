@@ -50,6 +50,7 @@ struct PixelInput
 VS
 {
 	#include "common/vertex.hlsl"
+	#include "water_calm_volume.fxc"
 
 	// Detail waves
 	float g_flWavesIntensity < Attribute("WavesIntensity"); Default1(4); >;
@@ -73,6 +74,13 @@ VS
 
 	float g_flWaterTime < Attribute("WaterTime"); Default1(0); >;
 
+	// River flow mode (WaterFlow component). The vertex color carries the local flow
+	// state (rg = direction, b = speed in units/s) and the texcoords carry river-space
+	// coordinates (x = across the channel, y = distance along the spline) in raw world
+	// units. Waves are evaluated in river space so they always travel downstream.
+	bool g_bFlowWater < Attribute("FlowWater"); Default(0); >;
+	float g_flFlowSpeedRef < Attribute("FlowSpeedRef"); Default1(100); >;
+
 	// Finite-difference step for the surface-normal reconstruction (see MainVs). Scaled by
 	// distance to the camera so it tracks the clipmap's vertex spacing (cells grow with
 	// distance), band-limiting the normal to what the mesh can represent — without this the
@@ -89,9 +97,12 @@ VS
 	// Two float4 rows per ripple: row0 = (Center.xy, StartTime, Strength), row1 = (Wavelength, Width, _, _)
 	StructuredBuffer<float4> g_vRippleData < Attribute("RippleData"); >;
 
-	// Gerstner wave sum (Identical formula to C# ComputeGerstner for exact CPU/GPU match.)
+	// Gerstner wave sum. With octaveAngleStep = 1.2 this is the identical formula to
+	// C# ComputeGerstner for exact CPU/GPU match (static water). River flow passes a
+	// small step instead so every octave travels roughly downstream — the default 1.2
+	// rad spread would send octave 2 across the channel and octave 3 nearly upstream.
 	// Returns float3: (dx, dy, dz) displacement. XY = horizontal orbital motion, Z = vertical.
-	float3 ComputeGerstner(float2 worldXY, float scale, float speed, float2 dir, int octaves, float lacunarity, float persistence, float steepness, float time)
+	float3 ComputeGerstner(float2 worldXY, float scale, float speed, float2 dir, int octaves, float lacunarity, float persistence, float steepness, float time, float octaveAngleStep)
 	{
 		float2 wDir = normalize(dir);
 		float t = time * speed;
@@ -103,7 +114,7 @@ VS
 
 		for (int oct = 0; oct < octaves; oct++)
 		{
-			float angle = oct * 1.2;
+			float angle = oct * octaveAngleStep;
 			float2 octDir = float2(
 				wDir.x * cos(angle) - wDir.y * sin(angle),
 				wDir.x * sin(angle) + wDir.y * cos(angle)
@@ -163,18 +174,36 @@ VS
 		return z;
 	}
 
-	// Total surface displacement (detail waves + swell + ripples) at a world XY.
-	// Single source of truth so the vertex position and the finite-difference normal
-	// below always agree. XY = orbital Gerstner motion, Z = height + ripples.
-	float3 TotalDisplacement(float2 worldXY)
+	// Ambient wave displacement (detail + swell) at a world XY — NO ripples. Ripples
+	// are added separately in MainVs so calm volumes can flatten the ambient waves
+	// while leaving object/player ripples at full strength. XY = orbital motion, Z = height.
+	float3 WaveDisplacement(float2 worldXY)
 	{
-		float3 detail = ComputeGerstner(worldXY, g_flWavesScale, g_flWavesSpeed, g_vWavesDirection, g_nWavesOctaves, g_flWavesLacunarity, g_flWavesPersistence, g_flWavesSteepness, g_flWaterTime) * g_flWavesIntensity;
-		float3 swell  = ComputeGerstner(worldXY, g_flSwellScale, g_flSwellSpeed, g_vSwellDirection, g_nSwellOctaves, g_flSwellLacunarity, g_flSwellPersistence, g_flSwellSteepness, g_flWaterTime) * g_flSwellIntensity;
+		float3 detail = ComputeGerstner(worldXY, g_flWavesScale, g_flWavesSpeed, g_vWavesDirection, g_nWavesOctaves, g_flWavesLacunarity, g_flWavesPersistence, g_flWavesSteepness, g_flWaterTime, 1.2) * g_flWavesIntensity;
+		float3 swell  = ComputeGerstner(worldXY, g_flSwellScale, g_flSwellSpeed, g_vSwellDirection, g_nSwellOctaves, g_flSwellLacunarity, g_flSwellPersistence, g_flSwellSteepness, g_flWaterTime, 1.2) * g_flSwellIntensity;
 
-		float3 disp = detail + swell;
-		disp.z += ComputeRipples(worldXY);
+		return detail + swell;
+	}
 
-		return disp;
+	// River displacement, evaluated in river space: x = across the channel, y = the
+	// travel-time advected along-coordinate baked into the UVs by WaterFlow. In that
+	// space the flow is UNIFORM at FlowSpeedReference — so waves use a constant speed
+	// and automatically pass each world-space point at the local water speed (fast
+	// sections stretch the pattern, slow ones compress it, like a real river).
+	// Scaling time by a per-vertex speed instead would shear the wave field without
+	// bound (compressed bands, patches flowing backwards). The local flow speed only
+	// scales the wave HEIGHT: rushing sections look agitated, calm stretches flatten.
+	// (No swell: rivers don't have one.)
+	float3 FlowDisplacement(float2 riverXY, float flowSpeed)
+	{
+		// ComputeGerstner's crest speed is speed * 0.5, so 2x travels at FlowSpeedRef.
+		// Direction (0,-1): phase moves opposite the wave direction → downstream (+along).
+		// Octave spread 0.3 rad keeps every octave moving downstream-ish (±17°/±34°).
+		float3 disp = ComputeGerstner(riverXY, g_flWavesScale, 2.0 * g_flFlowSpeedRef, float2(0, -1), g_nWavesOctaves, g_flWavesLacunarity, g_flWavesPersistence, g_flWavesSteepness, g_flWaterTime, 0.3) * g_flWavesIntensity;
+
+		float agitation = clamp(flowSpeed / max(g_flFlowSpeedRef, 1.0), 0.25, 2.0);
+
+		return disp * agitation;
 	}
 
 	PixelInput MainVs(VertexInput v)
@@ -216,13 +245,74 @@ VS
 		// eps is large → smooth, with the scrolling normal maps carrying fine detail.
 		float distToCam = distance(worldXY, g_vCameraPositionWs.xy);
 		float eps = max(g_flWaveNormalEpsMin, distToCam * g_flWaveNormalEpsScale);
-		float3 d0 = TotalDisplacement(worldXY);
-		float3 dX = TotalDisplacement(worldXY + float2(eps, 0.0));
-		float3 dY = TotalDisplacement(worldXY + float2(0.0, eps));
+
+		float3 d0, dX, dY;     // ambient WAVE displacement (no ripples yet)
+		float3 axisX, axisY;   // world-space directions of the two finite-difference steps
+		float2 rp0, rpX, rpY;  // world positions to sample ripples at (match the FD steps)
+
+		if (g_bFlowWater)
+		{
+			// River: decode the flow frame from the vertex color and evaluate the wave
+			// field in river space (texcoords), then rotate the horizontal displacement
+			// into world space using the local flow direction.
+			float2 fd = v.vColor.xy;
+			float fdLen = length(fd);
+			float2 flowDir = fdLen > 1e-4 ? fd / fdLen : float2(0, 1);
+			float flowSpeed = v.vColor.z;
+			float2 across = float2(flowDir.y, -flowDir.x);
+			float2 riverXY = v.vTexCoord.xy;
+
+			d0 = FlowDisplacement(riverXY, flowSpeed);
+			dX = FlowDisplacement(riverXY + float2(eps, 0.0), flowSpeed);
+			dY = FlowDisplacement(riverXY + float2(0.0, eps), flowSpeed);
+
+			// River-space horizontal displacement -> world space
+			d0.xy = d0.x * across + d0.y * flowDir;
+			dX.xy = dX.x * across + dX.y * flowDir;
+			dY.xy = dY.x * across + dY.y * flowDir;
+
+			axisX = float3(across, 0.0);
+			axisY = float3(flowDir, 0.0);
+
+			rp0 = worldXY;
+			rpX = worldXY + across * eps;
+			rpY = worldXY + flowDir * eps;
+		}
+		else
+		{
+			d0 = WaveDisplacement(worldXY);
+			dX = WaveDisplacement(worldXY + float2(eps, 0.0));
+			dY = WaveDisplacement(worldXY + float2(0.0, eps));
+
+			axisX = float3(1.0, 0.0, 0.0);
+			axisY = float3(0.0, 1.0, 0.0);
+
+			rp0 = worldXY;
+			rpX = worldXY + float2(eps, 0.0);
+			rpY = worldXY + float2(0.0, eps);
+		}
+
+		// Calm volumes settle the AMBIENT WAVES to flat. Scale the wave samples by the
+		// same per-vertex factor so the reconstructed normal flattens with the surface
+		// (no fake slope from the falloff); the smooth falloff across vertices gives the
+		// wavy→flat transition. Calm is forwarded to the PS (free .z texcoord) so the
+		// scrolling normal maps fade out too, leaving the ambient surface glassy.
+		float calm = ComputeWaterCalm(basePos);
+		float waveScale = 1.0 - calm;
+
+		d0 *= waveScale;
+		dX *= waveScale;
+		dY *= waveScale;
+
+		// Ripples (object/player splashes) are added AFTER the calm scaling, so a splash
+		// still rings out at full strength on otherwise-settled water.
+		d0.z += ComputeRipples(rp0);
+		dX.z += ComputeRipples(rpX);
+		dY.z += ComputeRipples(rpY);
 
 		// Tangents of the displaced surface (neighbour minus centre, including the eps step)
-		float3 tangentX = float3(eps, 0.0, 0.0) + (dX - d0);
-		float3 tangentY = float3(0.0, eps, 0.0) + (dY - d0);
+		float3 tangentX = axisX * eps + (dX - d0);
+		float3 tangentY = axisY * eps + (dY - d0);
 		float3 waveNormal = normalize(cross(tangentX, tangentY));
 
 		// Apply the displacement (XY = orbital Gerstner motion, Z = height + ripples)
@@ -234,6 +324,8 @@ VS
 		i.vNormalWs = waveNormal;
 		i.vTangentUWs = normalize(tangentX);
 		i.vTangentVWs = normalize(tangentY);
+
+		i.vTextureCoords.z = calm;
 
 		return FinalizeVertex(i);
 	}
@@ -270,6 +362,15 @@ PS
 	float g_flSpeedMainNormal < UiGroup( "Normals,0/,0/0" ); Default1( 50 ); Range1( -1000, 1000 ); >;
 	float g_flSpeedSecondNormal < UiGroup( "Normals,0/,0/0" ); Default1( -25 ); Range1( -1000, 1000 ); >;
 	float g_flNormalStrength < UiType( Slider ); UiGroup( "Normals,0/,0/0" ); Default1( 1 ); Range1( 0, 2 ); >;
+
+	// ── River Flow ──
+	// Set by the WaterFlow component: normals scroll downstream through the
+	// travel-time advected UV space instead of the fixed diagonal drift. The scroll
+	// is UNIFORM (FlowSpeedReference) — the advected V coordinate already encodes
+	// the local flow speed, so a constant offset moves the texture at the right
+	// speed everywhere without shearing it over time.
+	bool g_bFlowWater < Attribute("FlowWater"); Default(0); >;
+	float g_flFlowSpeedRef < Attribute("FlowSpeedRef"); Default1(100); >;
 
 	// ── Refraction ──
 	float g_flRefractionStrength < UiType( Slider ); UiGroup( "Refraction,0/,0/0" ); Default1( 0.1 ); Range1( 0, 1 ); >;
@@ -351,6 +452,16 @@ PS
 			3.0 + dot(_P, float2(41.0, 29.0)),
 			4.0 + dot(_P, float2(23.0, 31.0))
 		)) * 103.0);
+	}
+
+	// Plain tiling normal sample — used for river flow. The no-tile variant below
+	// randomly mirrors each virtual tile (UV *= ±1), which is invisible for static
+	// water but makes a directional scroll run sideways/backwards per patch and
+	// flips the normal XY in those patches. Rivers hide repetition through motion
+	// and the dual-layer speeds instead.
+	float3 SampleNormalPlain(Texture2D _Tex, SamplerState _Sampler, float2 _UV)
+	{
+		return DecodeNormal(_Tex.Sample(_Sampler, _UV).xyz);
 	}
 
 	float3 SampleNormalNoTile(Texture2D _Tex, SamplerState _Sampler, float2 _UV)
@@ -447,15 +558,48 @@ PS
 
 
 		// ── Dual scrolling normals ──────────────────────────────────────
-		float mainNormalOffset = g_flTime / g_flSpeedMainNormal;
-		float2 mainNormalUV = TileAndOffsetUv(i.vTextureCoords.xy, g_vNormalTiling, float2(mainNormalOffset, mainNormalOffset));
-		float3 mainNormal = TransformNormal(SampleNormalNoTile(g_tMainNormal, g_sAniso, mainNormalUV), i.vNormalWs, i.vTangentUWs, i.vTangentVWs);
+		// Static water drifts diagonally at a fixed rate. River flow scrolls the
+		// normals downstream (+V in river UV space) at the local flow speed — the
+		// offset is applied post-tiling, so world units/s convert to UV/s through
+		// the tiling factor. The second layer runs slower for parallax shimmer.
+		float2 mainNormalOffset, secondNormalOffset;
 
-		float secondNormalOffset = g_flTime / g_flSpeedSecondNormal;
-        float2 secondNormalUV = TileAndOffsetUv(i.vTextureCoords.xy, g_vNormalTiling, float2(secondNormalOffset, secondNormalOffset));
-        float3 secondNormal = TransformNormal(SampleNormalNoTile(g_tSecondNormal, g_sAniso, secondNormalUV), i.vNormalWs, i.vTangentUWs, i.vTangentVWs);
+		if (g_bFlowWater)
+		{
+			// Uniform downstream scroll — local speed variation is baked into the
+			// advected V coordinate, so the offset must NOT vary per pixel.
+			float scroll = g_flTime * g_flFlowSpeedRef * g_vNormalTiling.y;
+
+			mainNormalOffset = float2(0.0, -scroll);
+			secondNormalOffset = float2(0.0, -scroll * 0.66);
+		}
+		else
+		{
+			float mainOffset = g_flTime / g_flSpeedMainNormal;
+			float secondOffset = g_flTime / g_flSpeedSecondNormal;
+
+			mainNormalOffset = float2(mainOffset, mainOffset);
+			secondNormalOffset = float2(secondOffset, secondOffset);
+		}
+
+		float2 mainNormalUV = TileAndOffsetUv(i.vTextureCoords.xy, g_vNormalTiling, mainNormalOffset);
+		float3 mainNormalTs = g_bFlowWater
+			? SampleNormalPlain(g_tMainNormal, g_sAniso, mainNormalUV)
+			: SampleNormalNoTile(g_tMainNormal, g_sAniso, mainNormalUV);
+		float3 mainNormal = TransformNormal(mainNormalTs, i.vNormalWs, i.vTangentUWs, i.vTangentVWs);
+
+        float2 secondNormalUV = TileAndOffsetUv(i.vTextureCoords.xy, g_vNormalTiling, secondNormalOffset);
+		float3 secondNormalTs = g_bFlowWater
+			? SampleNormalPlain(g_tSecondNormal, g_sAniso, secondNormalUV)
+			: SampleNormalNoTile(g_tSecondNormal, g_sAniso, secondNormalUV);
+        float3 secondNormal = TransformNormal(secondNormalTs, i.vNormalWs, i.vTangentUWs, i.vTangentVWs);
 
 		float3 blendedNormal = BlendNormals(mainNormal, secondNormal);
+
+		// Inside a calm volume, fade the normal-map detail toward the (flattened)
+		// geometric normal so the settled water reads as glassy, not just level.
+		float calm = saturate(i.vTextureCoords.z);
+		blendedNormal = normalize(lerp(blendedNormal, i.vNormalWs, calm));
 
         float3 surfacePos = i.vPositionWithOffsetWs.xyz + g_vHighPrecisionLightingOffsetWs.xyz;
         bool withinHybridInclusionBounds = !g_bUseHybridInclusionBounds ||

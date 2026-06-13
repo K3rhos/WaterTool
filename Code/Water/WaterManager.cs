@@ -33,6 +33,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 	private List<WaterQuad> Quads { get; } = [];
 	private List<WaterBodyRenderer> QuadRenderers { get; } = [];
 	public List<WaterBody> Bodies { get; } = [];
+	public List<WaterFlow> Flows { get; } = [];
 	public List<WaterExclusionVolume> ExclusionVolumes { get; } = [];
 	public List<HullWaterExclusionVolume> HullExclusionVolumes { get; } = [];
 
@@ -65,6 +66,8 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 
 		m_RippleBuffer?.Dispose();
 		m_RippleBuffer = null;
+
+		DisposeCalmVolumes();
 
 		base.Dispose();
 	}
@@ -112,6 +115,7 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 			UnderwaterPostProcessVolume.Enabled = IsPositionInsideAny(m_CameraPosition);
 
 		UpdateRipples();
+		UpdateCalmVolumes();
 	}
 	
 	
@@ -151,6 +155,19 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 	internal void Unregister(WaterBody body)
 	{
 		Bodies.Remove(body);
+	}
+
+
+
+	internal void Register(WaterFlow flow)
+	{
+		if (!Flows.Contains(flow))
+			Flows.Add(flow);
+	}
+
+	internal void Unregister(WaterFlow flow)
+	{
+		Flows.Remove(flow);
 	}
 
 
@@ -240,6 +257,15 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 			quad.RecordCompute(cl, m_ComputeShader, m_CameraPosition);
 		}
 
+		// Flows build their mesh on the CPU — no compute pass or barrier needed
+		foreach (var flow in Flows)
+		{
+			if (!flow.IsValid() || !flow.ParticipatesInRendering)
+				continue;
+
+			hasAnythingToRender = true;
+		}
+
 		if (hasAnythingToRender)
 		{
 			foreach (var renderer in QuadRenderers)
@@ -274,6 +300,14 @@ public partial class WaterManager : GameObjectSystem<WaterManager>
 					continue;
 
 				quad.Draw(cl);
+			}
+
+			foreach (var flow in Flows)
+			{
+				if (!flow.IsValid() || !flow.ParticipatesInRendering)
+					continue;
+
+				flow.Draw(cl);
 			}
 		}
 

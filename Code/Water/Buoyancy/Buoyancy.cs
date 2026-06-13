@@ -18,7 +18,7 @@ public sealed class Buoyancy : Component
 
 	// Set to 0 for docked/anchored boats that should only bob vertically
 	[Property, Group("Wave Transport"), Range(0f, 1f)] private float HorizontalDisplacementStrength { get; set; } = 1.0f;
-	[Property, Group("Wave Transport")] private float WaveTransportForce { get; set; } = 5.0f;
+	[Property, Group("Wave Transport"), Range(0.1f, 10.0f)] private float Drag { get; set; } = 1.5f;
 
 	[Property] private float AirLeakRate { get; set; } = 0.0f;
 
@@ -88,6 +88,7 @@ public sealed class Buoyancy : Component
 				ApplyAngularDrag();
 				ApplyBuoyancy();
 				ApplyWaveTransport();
+				ApplyCurrentForce();
 
 				HandleWakeRipple();
 			}
@@ -288,6 +289,27 @@ public sealed class Buoyancy : Component
 		Vector3 displacement = WaterManager.GetWaveDisplacementAt(WorldPosition);
 		Vector3 horizontalDisp = new Vector3(displacement.x, displacement.y, 0) * HorizontalDisplacementStrength;
 
-		m_Collider.Rigidbody.ApplyForce(horizontalDisp * WaveTransportForce);
+		Vector3 relative = horizontalDisp - m_Collider.Rigidbody.Velocity.WithZ(0.0f);
+		Vector3 force = relative * (m_Collider.Rigidbody.Mass * Drag);
+		
+		m_Collider.Rigidbody.ApplyForce(force);
+	}
+
+
+
+	private void ApplyCurrentForce()
+	{
+		if (HorizontalDisplacementStrength <= 0f)
+			return;
+		
+		Vector3 flowVelocity = WaterManager.GetFlowVelocityAt(WorldPosition);
+
+		if (flowVelocity.LengthSquared < 0.01f)
+			return;
+		
+		Vector3 relative = flowVelocity - m_Collider.Rigidbody.Velocity.WithZ(0.0f);
+		Vector3 force = relative * HorizontalDisplacementStrength * (m_Collider.Rigidbody.Mass * Drag);
+		
+		m_Collider.Rigidbody.ApplyForce(force);
 	}
 }
