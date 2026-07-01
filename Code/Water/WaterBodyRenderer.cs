@@ -75,12 +75,12 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 
 		m_LastConfigHash = ComputeConfigHash();
 
-		WaterManager.Current?.Register(this);
+		WaterManager.Current?.RefreshWaterBodyRenderersList();
 	}
 
 	protected override void OnDisabled()
 	{
-		WaterManager.Current?.Unregister(this);
+		WaterManager.Current?.RefreshWaterBodyRenderersList();
 
 		m_VertexBuffer = default;
 		m_IndexBuffer = default;
@@ -197,7 +197,7 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 
 		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
 		WaterManager.Current?.ApplyCalmAttributes(m_DrawAttributes);
-
+		
 		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
 		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
 		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);

@@ -119,7 +119,7 @@ public sealed class WaterFlow : Component, Component.ExecuteInEditor, Component.
 
 		RebuildMesh();
 
-		WaterManager.Current?.Register(this);
+		WaterManager.Current?.RefreshWaterFlowsList();
 	}
 
 
@@ -128,7 +128,7 @@ public sealed class WaterFlow : Component, Component.ExecuteInEditor, Component.
 	{
 		Spline.SplineChanged -= OnSplineChanged;
 
-		WaterManager.Current?.Unregister(this);
+		WaterManager.Current?.RefreshWaterFlowsList();
 
 		m_VertexBuffer = default;
 		m_IndexBuffer = default;

@@ -13,28 +13,14 @@ namespace RedSnail.WaterTool;
 [Icon("water")]
 public sealed class WaterExclusionVolume : VolumeComponent, Component.ExecuteInEditor
 {
-	private bool m_CalledOnValidate;
-
 	protected override void OnEnabled()
 	{
-		WaterManager.Get(Scene)?.Register(this);
-	}
-
-	protected override void OnValidate()
-	{
-		m_CalledOnValidate = true;
+		WaterManager.Current?.RefreshWaterExclusionVolumesList();
 	}
 
 	protected override void OnDisabled()
 	{
-		// We don't want to unregister if OnValidate() was called — that means we just saved the scene.
-		if (m_CalledOnValidate)
-		{
-			m_CalledOnValidate = false;
-			return;
-		}
-
-		WaterManager.Get(Scene)?.Unregister(this);
+		WaterManager.Current?.RefreshWaterExclusionVolumesList();
 	}
 
 	protected override void DrawGizmos()

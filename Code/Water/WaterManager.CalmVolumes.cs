@@ -18,22 +18,20 @@ public partial class WaterManager
 	private GpuBuffer<Vector4> m_CalmVolumeBuffer;
 	private readonly Vector4[] m_CalmVolumeData = new Vector4[MAX_CALM_VOLUMES * CALM_VOLUME_ROWS];
 	private int m_ActiveCalmCount;
-
-
-
-	internal void Register(WaterCalmVolume volume)
+	
+	
+	
+	public void RefreshWaterCalmVolumesList()
 	{
-		if (!CalmVolumes.Contains(volume))
-			CalmVolumes.Add(volume);
+		if (!Scene.IsValid()) // S&box make this null while stopping play mode and entering back the editor mode (We need to guard this)
+			return;
+		
+		CalmVolumes.Clear();
+		CalmVolumes.AddRange(Scene.GetAll<WaterCalmVolume>());
 	}
-
-	internal void Unregister(WaterCalmVolume volume)
-	{
-		CalmVolumes.Remove(volume);
-	}
-
-
-
+	
+	
+	
 	private void UpdateCalmVolumes()
 	{
 		int count = 0;
@@ -124,7 +122,7 @@ public partial class WaterManager
 		return t * t * (3.0f - 2.0f * t);
 	}
 
-	private void DisposeCalmVolumes()
+	private void ClearCalmVolumes()
 	{
 		m_CalmVolumeBuffer?.Dispose();
 		m_CalmVolumeBuffer = null;

@@ -21,7 +21,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 
 	protected override void OnEnabled()
 	{
-		WaterManager.Current?.Register(this);
+		WaterManager.Current?.RefreshWaterBodiesList();
 
 		UpdateColliderState();
 
@@ -30,7 +30,7 @@ public sealed class WaterBody : VolumeComponent, Component.ExecuteInEditor
 
 	protected override void OnDisabled()
 	{
-		WaterManager.Current?.Unregister(this);
+		WaterManager.Current?.RefreshWaterBodiesList();
 
 		m_HullCollider?.Destroy();
 		m_HullCollider = null;

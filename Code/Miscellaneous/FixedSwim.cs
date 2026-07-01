@@ -9,7 +9,6 @@ namespace RedSnail.WaterTool;
 [Icon( "scuba_diving" ), Group( "Movement" ), Title( "MoveMode - Swim (Fixed)" )]
 public sealed class MoveModeSwimFixed : MoveMode
 {
-	private float m_TargetVolume;
 	private bool m_WasInWater;
 	private bool m_HasTouchedWater;
 	

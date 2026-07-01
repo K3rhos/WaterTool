@@ -88,14 +88,14 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		m_LastNumCircleSegments = CircleSegments;
 		m_LastMaterial = Material;
 
-		WaterManager.Current?.Register(this);
+		WaterManager.Current?.RefreshWaterQuadsList();
 	}
 
 
 
 	protected override void OnDisabled()
 	{
-		WaterManager.Current?.Unregister(this);
+		WaterManager.Current?.RefreshWaterQuadsList();
 
 		m_HullCollider?.Destroy();
 
@@ -116,7 +116,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 		// Material was just assigned after the component was already enabled, register now.
 		if (m_LastMaterial == null && Material != null)
-			WaterManager.Current.Register(this);
+			WaterManager.Current?.RefreshWaterQuadsList();
 
 		m_LastMaterial = Material;
 
@@ -566,7 +566,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
 		WaterManager.Current?.ApplyCalmAttributes(m_DrawAttributes);
-
+		
 		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
 		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
 		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
@@ -628,7 +628,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			.Where(h => h.IsValid() && h.Active && h.LocalTriangles.Length > 0)
 			.Take(MAX_HULL_EXCLUSION_VOLUMES)
 			.ToList();
-
+		
 		if (hulls.Count == 0)
 		{
 			m_DrawAttributes.Set("WaterHullExclusionCount", 0);

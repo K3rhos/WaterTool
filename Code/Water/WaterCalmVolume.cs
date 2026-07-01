@@ -25,31 +25,17 @@ public sealed class WaterCalmVolume : VolumeComponent, Component.ExecuteInEditor
 	// Fraction of the volume (from each face inward) over which the calming ramps in.
 	// 0 = hard edge (a visible crease), 1 = ramps all the way from the center.
 	[Property, Range(0.05f, 1.0f)] public float Falloff { get; set; } = 0.4f;
-
-	private bool m_CalledOnValidate;
-
-
-
+	
+	
+	
 	protected override void OnEnabled()
 	{
-		WaterManager.Get(Scene)?.Register(this);
+		WaterManager.Current?.RefreshWaterCalmVolumesList();
 	}
-
-	protected override void OnValidate()
-	{
-		m_CalledOnValidate = true;
-	}
-
+	
 	protected override void OnDisabled()
 	{
-		// Don't unregister if OnValidate() was called — that just means the scene saved.
-		if (m_CalledOnValidate)
-		{
-			m_CalledOnValidate = false;
-			return;
-		}
-
-		WaterManager.Get(Scene)?.Unregister(this);
+		WaterManager.Current?.RefreshWaterCalmVolumesList();
 	}
 
 	protected override void DrawGizmos()

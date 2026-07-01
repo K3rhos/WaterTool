@@ -19,6 +19,8 @@ public sealed class HullWaterExclusionVolume : Component, Component.ExecuteInEdi
 
 	/// <summary>AABB of all local triangles, used for early GPU rejection.</summary>
 	public BBox LocalAABB { get; private set; }
+	
+	[Property] private Model CustomModel { get; set; }
 
 	private Model _lastModel;
 
@@ -26,17 +28,17 @@ public sealed class HullWaterExclusionVolume : Component, Component.ExecuteInEdi
 	{
 		RebuildMesh();
 
-		WaterManager.Current?.Register(this);
+		WaterManager.Current?.RefreshWaterHullExclusionVolumesList();
 	}
 
 	protected override void OnDisabled()
 	{
-		WaterManager.Current?.Unregister(this);
+		WaterManager.Current?.RefreshWaterHullExclusionVolumesList();
 	}
 
 	protected override void OnUpdate()
 	{
-		var model = GetComponent<ModelRenderer>()?.Model;
+		var model = CustomModel.IsValid() ? CustomModel : GetComponent<ModelRenderer>()?.Model;
 		
 		if (model != _lastModel)
 			RebuildMesh();
@@ -44,7 +46,7 @@ public sealed class HullWaterExclusionVolume : Component, Component.ExecuteInEdi
 
 	private void RebuildMesh()
 	{
-		var model = GetComponent<ModelRenderer>()?.Model;
+		var model = CustomModel.IsValid() ? CustomModel : GetComponent<ModelRenderer>()?.Model;
 
 		if (model == null)
 		{
