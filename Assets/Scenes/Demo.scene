@@ -56,6 +56,7 @@
           "__guid": "359e72e0-5018-49c7-8439-17e3a774e7ce",
           "__enabled": true,
           "Flags": 0,
+          "ContactShadows": true,
           "Contribution": "Diffuse, Specular, Transmissive",
           "FogMode": "Enabled",
           "FogStrength": 1,
@@ -151,8 +152,6 @@
           "__enabled": true,
           "Flags": 0,
           "__version": 1,
-          "Filter": "Bilinear",
-          "Gamma": 2.2,
           "Mode": "Additive",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
@@ -298,7 +297,6 @@
           "Static": true,
           "Storage": "terrain/demo.terrain",
           "SubdivisionFactor": 1,
-          "SubdivisionLodCount": 3,
           "Surface": null,
           "SurfaceVelocity": "0,0,0",
           "TerrainHeight": 2000,
@@ -345,6 +343,7 @@
           "BodyMass": 70,
           "BodyRadius": 16,
           "BrakePower": 1,
+          "CameraCollisionIgnore": "",
           "CameraOffset": "256,0,12",
           "ColliderObject": {
             "_type": "gameobject",
@@ -853,6 +852,7 @@
               "SolidProbeRadius": 8,
               "Soundscape": true,
               "SoundscapeAsset": "sounds/ocean-loop.sndscape",
+              "SoundscapeExtraHeight": 250,
               "SoundscapeStayActiveOnExit": false,
               "SoundscapeTargetMixer": {
                 "Name": "game",
@@ -19335,7 +19335,8 @@
     "GameObjectSystems": {
       "Sandbox.Clutter.ClutterGridSystem": {
         "Storage": {
-          "$blob": "d60ab747-c25b-42ee-ab85-0bb4517eb812"
+          "$blob": "64db792e-5935-8fbc-8cfa-050cd49fa7fd",
+          "$refs": []
         }
       },
       "Sandbox.SelectionSetsSystem": {

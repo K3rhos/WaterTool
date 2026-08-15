@@ -455,7 +455,7 @@ public sealed class WaterFlow : Component, Component.ExecuteInEditor, Component.
 		WaterManager.Current?.ApplyRippleAttributes(m_DrawAttributes);
 		WaterManager.Current?.ApplyCalmAttributes(m_DrawAttributes);
 
-		SetWaterExclusionVolumes(Scene.Camera.IsValid() ? Scene.Camera.WorldPosition : WorldPosition);
+		SetWaterExclusionVolumes(WaterManager.GetViewPosition(Scene, WorldPosition));
 		SetHullExclusionVolumes();
 	}
 

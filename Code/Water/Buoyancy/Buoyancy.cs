@@ -71,16 +71,19 @@ public sealed class Buoyancy : Component
 
 		float waveHeight = WaterManager.GetWaterHeightAt(WorldPosition);
 		bool insideWater = waveHeight > float.MinValue;
-
+		
 		if (insideWater)
 		{
 			WaterHeight = waveHeight;
-			IsTouchingWater = true;
 
 			HandleEntryRipple();
 
+			// A water body below us always reports a valid height, even when we're flying far above it —
+			// only count as touching when the hull is actually down at the surface (same band the forces use).
 			float colliderHeight = m_Collider.LocalBounds.Size.z;
 			bool isNearWater = WorldPosition.z <= WaterHeight + colliderHeight;
+
+			IsTouchingWater = isNearWater;
 
 			if (isNearWater)
 			{

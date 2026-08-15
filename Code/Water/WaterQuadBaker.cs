@@ -40,6 +40,7 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 	[Property, Group("Coastal Fill"), Range(0.1f, 1.0f)] public float CoastalFillInlandThreshold { get; set; } = 1.0f;
 
 	[Property, ToggleGroup("Soundscape"), Order(4)] public bool Soundscape { get; set; } = false;
+	[Property, Group("Soundscape"), Range(0.0f, 1000.0f)] public float SoundscapeExtraHeight { get; set; } = 250.0f;
 	[Property, Group("Soundscape")] public Soundscape SoundscapeAsset { get; set; }
 	[Property, Group("Soundscape")] public MixerHandle SoundscapeTargetMixer { get; set; }
 	[Property, Group("Soundscape")] public bool SoundscapeStayActiveOnExit { get; set; } = true;
@@ -562,14 +563,14 @@ public sealed class WaterQuadBaker : Component, Component.ExecuteInEditor
 
 	private void CreateSoundscapeTrigger(GameObject _Parent, float _Width, float _Length)
 	{
-		var finalExtents = new Vector3(_Width * 0.5f, _Length * 0.5f, WaterDepth * 2.0f);
+		var finalExtents = new Vector3(_Width * 0.5f, _Length * 0.5f, (WaterDepth * 0.5f) + SoundscapeExtraHeight);
 
 		if (finalExtents.x <= 1.0f || finalExtents.y <= 1.0f || finalExtents.z <= 1.0f)
 			return;
 
 		var go = new GameObject(_Parent, true, "Water Soundscape");
 		go.Tags.Add(BakedTag);
-		go.LocalPosition = Vector3.Zero;
+		go.LocalPosition = Vector3.Zero.WithZ(SoundscapeExtraHeight);
 		go.LocalRotation = Rotation.Identity;
 		go.LocalScale = 1.0f;
 

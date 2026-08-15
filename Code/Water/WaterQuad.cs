@@ -571,7 +571,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
 		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
 
-		SetWaterExclusionVolumes(Scene.Camera.WorldPosition);
+		SetWaterExclusionVolumes(WaterManager.GetViewPosition(Scene, WorldPosition));
 		SetHullExclusionVolumes();
 	}
 

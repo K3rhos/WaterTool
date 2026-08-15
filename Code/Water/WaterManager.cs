@@ -24,13 +24,9 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 
 	private ComputeShader m_ComputeShader;
 
-	// Double-buffered command lists. We BUILD into the disabled "back" list on the main
-	// thread (FinishUpdate); the camera EXECUTES the enabled "front" list on a render
-	// worker thread. Because the recorded list and the executing list are never the same
-	// instance in a frame, the engine never iterates a list while we're resetting it -
-	// which is the multithreaded "CommandList was null" crash. Both stay attached to the
-	// camera for its lifetime; each frame we just flip which one is Enabled.
-	private CommandList m_CommandList = new("Water Quads");
+	private CommandList m_CommandList = new("Water Rendering");
+
+	private CameraComponent m_LastCamera;
 	private Vector3 m_CameraPosition;
 	private WaterDefinition m_DefaultProfile;
 
@@ -69,8 +65,8 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 			}
 		};
 		
-		Scene.Camera?.AddCommandList(m_CommandList, RenderStage.AfterTransparent);
-		
+		UpdateCommandListRegistration();
+
 		RefreshWaterQuadsList();
 		RefreshWaterBodyRenderersList();
 		RefreshWaterBodiesList();
@@ -89,8 +85,83 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 		m_RippleBuffer = null;
 	
 		ClearCalmVolumes();
-		
-		Scene.Camera?.RemoveCommandList(m_CommandList);
+
+		// Unregister from the camera we actually registered with. Scene.Camera can have changed
+		// (or gone) since then, so asking for it again would leave the list attached to a camera
+		// we never clean up.
+		if (m_LastCamera.IsValid())
+			m_LastCamera.RemoveCommandList(m_CommandList);
+
+		m_LastCamera = null;
+	}
+
+
+
+	/// <summary>
+	/// Keeps the compute command list attached to a camera that will actually replay it. This has
+	/// to run every frame, not just on enable: a scene starting without a camera would never
+	/// register at all, and leaving play mode destroys the play camera without the reference here
+	/// turning null, so comparing references alone would leave us bound to a dead camera forever.
+	/// </summary>
+	private void UpdateCommandListRegistration()
+	{
+		var renderCamera = GetRenderCamera();
+
+		if (renderCamera == m_LastCamera && m_LastCamera.IsValid())
+			return;
+
+		if (m_LastCamera.IsValid())
+			m_LastCamera.RemoveCommandList(m_CommandList);
+
+		m_LastCamera = null;
+
+		if (renderCamera.IsValid())
+		{
+			renderCamera.AddCommandList(m_CommandList, RenderStage.AfterTransparent);
+			m_LastCamera = renderCamera;
+		}
+	}
+
+
+
+	/// <summary>
+	/// The camera whose command list actually replays. A scene camera does so in the editor
+	/// viewport as well as in game, so it wins when one exists; with no camera in the scene the
+	/// editor camera is the only thing left that will replay ours.
+	/// </summary>
+	private CameraComponent GetRenderCamera()
+	{
+		if (Scene.Camera.IsValid())
+			return Scene.Camera;
+
+		if (Scene.IsEditor)
+			return Application.Editor?.Camera;
+
+		return null;
+	}
+
+
+
+	/// <summary>
+	/// World position the water should treat as the viewer, for anything that culls or picks
+	/// volumes by distance. While editing that has to be the viewport camera rather than the scene
+	/// camera, or volumes are gathered around wherever the game camera happens to be parked and the
+	/// water you are actually looking at gets the wrong set. Falls back when no camera exists at
+	/// all, which is a real case - Scene.Camera excludes the editor camera and can be null.
+	/// </summary>
+	public static Vector3 GetViewPosition(Scene scene, Vector3 fallback = default)
+	{
+		if (!scene.IsValid())
+			return fallback;
+
+		if (scene.IsEditor)
+		{
+			var editorCamera = Application.Editor?.Camera;
+			if (editorCamera.IsValid())
+				return editorCamera.WorldPosition;
+		}
+
+		return scene.Camera.IsValid() ? scene.Camera.WorldPosition : fallback;
 	}
 	
 	
@@ -201,14 +272,19 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 		// gameplay and editor, we've to do this non sense !)
 		if (Scene.IsEditor)
 			Current = Scene.Get<WaterManager>();
-		
+
+		UpdateCommandListRegistration();
+
 		if (Game.IsPlaying)
 		{
 			m_CameraPosition = Scene.Camera?.WorldPosition ?? Vector3.Zero;
 		}
 		else
 		{
-			m_CameraPosition = Application.Editor.Camera.WorldPosition;
+			// Guarded: with no camera in the scene at all this used to dereference straight through
+			// Application.Editor.Camera and throw.
+			var editorCamera = Application.Editor?.Camera;
+			m_CameraPosition = editorCamera.IsValid() ? editorCamera.WorldPosition : Vector3.Zero;
 		}
 
 		if (UnderwaterPostProcessVolume.IsValid())

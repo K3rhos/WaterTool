@@ -202,8 +202,10 @@ public sealed class WaterBodyRenderer : Component, Component.ExecuteInEditor, Co
 		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
 		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
 
-		SetWaterInclusionVolumes(Scene.Camera.WorldPosition);
-		SetWaterExclusionVolumes(Scene.Camera.WorldPosition);
+		var viewPosition = WaterManager.GetViewPosition(Scene, WorldPosition);
+
+		SetWaterInclusionVolumes(viewPosition);
+		SetWaterExclusionVolumes(viewPosition);
 		SetHullExclusionVolumes();
 	}
 
