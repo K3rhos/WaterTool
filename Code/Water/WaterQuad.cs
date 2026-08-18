@@ -72,7 +72,18 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	[Property, Group("Texture"), Order(4), Range(0.1f, 2.0f)] public float TextureTilingMultiplier { get; set; } = 1.0f;
 
 	public HullCollider HullCollider => m_HullCollider;
-	private int VerticesPerRing => (CellsPerRing + 1) * (CellsPerRing + 1);
+
+	// Distance LOD level resolved by the WaterManager (0 = full detail). At level L the grid
+	// uses half the cells at twice the size per level, so it covers exactly the same area with
+	// 4^L fewer vertices. CellsPerRing * BaseCellSize is preserved exactly, which is what keeps
+	// the ring count, coverage and texture tiling identical across levels — only the
+	// tessellation density changes, so there's no swimming or resizing when a level switches.
+	private int m_LodLevel;
+
+	private int EffectiveCellsPerRing => Math.Max(16, CellsPerRing >> m_LodLevel);
+	private float EffectiveBaseCellSize => BaseCellSize * ((float)CellsPerRing / EffectiveCellsPerRing);
+
+	private int VerticesPerRing => (EffectiveCellsPerRing + 1) * (EffectiveCellsPerRing + 1);
 
 
 
@@ -122,6 +133,11 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 		if (Material == null)
 			return;
+
+		// Resolve the tessellation level before the buffers are checked — it feeds the config
+		// hash, so a level change rebuilds the grid at the new density (rare, thanks to the
+		// hysteresis in ComputeLodLevel).
+		m_LodLevel = WaterManager.Current.ComputeLodLevel(GetWorldBounds2D(), m_LodLevel);
 
 		UpdateBuffers();
 
@@ -188,7 +204,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	private int ComputeConfigHash()
 	{
-		return HashCode.Combine(Width, Length, BaseCellSize, CellsPerRing, CircleShape, CircleSegments);
+		return HashCode.Combine(Width, Length, BaseCellSize, CellsPerRing, CircleShape, CircleSegments, m_LodLevel);
 	}
 
 
@@ -203,6 +219,9 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private int ComputeRingCount(float _Width, float _Length)
 	{
 		float maxDim = MathF.Max(_Length, _Width);
+
+		// Authored product on purpose: LOD preserves CellsPerRing * BaseCellSize exactly, so the
+		// ring layout and coverage stay identical across levels — only the density changes.
 		float innerExtent = CellsPerRing * BaseCellSize;
 
 		float requiredExtent = maxDim * 2.0f;
@@ -226,6 +245,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 			int ringCount = ComputeRingCount();
 
+			// Authored product (LOD-invariant) so texture tiling doesn't shift on a level change
 			return CellsPerRing * BaseCellSize * (1 << (ringCount - 1));
 		}
 	}
@@ -256,7 +276,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		}
 
 		int ringCount = ComputeRingCount();
-		int n = CellsPerRing;
+		int n = EffectiveCellsPerRing;
 		int verticesPerRing = VerticesPerRing;
 
 		int innerStart = n / 4 + 1;
@@ -337,7 +357,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 	private int ComputeCircleGridWidth()
 	{
 		float diameter = MathF.Min(Width, Length);
-		int cells = (int)MathF.Ceiling(diameter / BaseCellSize);
+		int cells = (int)MathF.Ceiling(diameter / EffectiveBaseCellSize);
 		return Math.Clamp(cells, 1, 256);
 	}
 
@@ -345,7 +365,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 	private void UploadIndexBuffer(int _RingCount)
 	{
-		int n = CellsPerRing;
+		int n = EffectiveCellsPerRing;
 		int verticesPerRing = VerticesPerRing;
 
 		int innerStart = n / 4 + 1;
@@ -456,7 +476,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 
 		for (int ring = 0; ring < ringCount; ring++)
 		{
-			float cellSize = BaseCellSize * (1 << ring);
+			float cellSize = EffectiveBaseCellSize * (1 << ring);
 
 			Vector3 clipmapAnchor = FollowCameraForClipmap ? _CameraPosition : WorldPosition;
 
@@ -466,7 +486,7 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 			_CommandList.Attributes.Set("VertexBuffer", m_VertexBuffer);
 			_CommandList.Attributes.Set("VertexOffset", ring * verticesPerRing);
 
-			_CommandList.Attributes.Set("GridWidth", CellsPerRing);
+			_CommandList.Attributes.Set("GridWidth", EffectiveCellsPerRing);
 			_CommandList.Attributes.Set("CellSize", cellSize);
 
 			_CommandList.Attributes.Set("SnapPosition", new Vector2(snapX, snapY));
@@ -568,8 +588,12 @@ public sealed class WaterQuad : Component, Component.ExecuteInEditor, Component.
 		WaterManager.Current?.ApplyCalmAttributes(m_DrawAttributes);
 		
 		// Band-limit the wave normal to the local clipmap vertex spacing (see shader)
-		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / CellsPerRing);
-		m_DrawAttributes.Set("WaveNormalEpsMin", BaseCellSize);
+		// Uses the EFFECTIVE grid: the normal's finite-difference step has to track the real
+		// vertex spacing, which coarsens with the LOD level. Feeding the authored values here
+		// would reconstruct detail the LODed mesh can't represent — the static world-locked
+		// moiré pattern all over again, worst exactly where LOD kicks in.
+		m_DrawAttributes.Set("WaveNormalEpsScale", 3.0f / EffectiveCellsPerRing);
+		m_DrawAttributes.Set("WaveNormalEpsMin", EffectiveBaseCellSize);
 
 		SetWaterExclusionVolumes(WaterManager.GetViewPosition(Scene, WorldPosition));
 		SetHullExclusionVolumes();

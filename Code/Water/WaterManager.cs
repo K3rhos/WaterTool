@@ -33,6 +33,15 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 	// the surface is skipped entirely. 0 = no distance limit. Independent of frustum culling.
 	[Property(Title = "Max Render Distance"), Group("Performance")] public float MaxRenderDistance { get; set; } = 25000.0f;
 
+	// Distance LOD: distant water quads drop tessellation instead of staying at full density.
+	// Each level halves the cell count and doubles the cell size, so the surface covers exactly
+	// the same area with 4x fewer vertices — coverage, ring layout and texture tiling are all
+	// unchanged, only the triangle density falls off with distance.
+	[Property(Title = "Distance LOD"), Group("Performance")] public bool EnableDistanceLod { get; set; } = true;
+	// Distance at which LOD 1 begins; each level after that doubles (LOD 2 at 2x, LOD 3 at 4x).
+	[Property(Title = "LOD Start Distance"), Group("Performance")] public float LodStartDistance { get; set; } = 1000.0f;
+	[Property(Title = "Max LOD Level"), Group("Performance"), Range(0, 4)] public int MaxLodLevel { get; set; } = 3;
+
 	private ComputeShader m_ComputeShader;
 
 	private CommandList m_CommandList = new("Water Rendering");
@@ -204,6 +213,38 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 	/// frustum and within the max render distance. Returns true — render it — when there's
 	/// no viewer, or when both culls are disabled.
 	/// </summary>
+	/// <summary>Distance at which the given LOD level starts (level 1 = LodStartDistance).</summary>
+	private float LodThreshold(int lod) => LodStartDistance * MathF.Pow(2.0f, lod - 1);
+
+	/// <summary>
+	/// Resolves the tessellation LOD for a surface from how far its bounds are from the viewer.
+	/// Takes the surface's current level so the switch can be hysteretic: a level only changes
+	/// once the distance is comfortably past the boundary, otherwise a camera hovering right on
+	/// a threshold would rebuild that surface's GPU buffers every frame.
+	/// </summary>
+	public int ComputeLodLevel(BBox worldBounds, int currentLod)
+	{
+		if (!EnableDistanceLod || !m_HasCullFrustum || MaxLodLevel <= 0 || LodStartDistance <= 0.0f)
+			return 0;
+
+		const float hysteresis = 0.15f;
+
+		float distance = worldBounds.ClosestPoint(m_CameraPosition).Distance(m_CameraPosition);
+
+		int lod = Math.Clamp(currentLod, 0, MaxLodLevel);
+
+		// Step out as the surface recedes, in as it approaches — one level at a time
+		while (lod < MaxLodLevel && distance > LodThreshold(lod + 1) * (1.0f + hysteresis))
+			lod++;
+
+		while (lod > 0 && distance < LodThreshold(lod) * (1.0f - hysteresis))
+			lod--;
+
+		return lod;
+	}
+
+
+
 	private bool IsRenderVisible(BBox worldBounds)
 	{
 		// Both culls need a viewer; without one, don't cull anything.
