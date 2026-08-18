@@ -678,6 +678,32 @@ public sealed class WaterFlow : Component, Component.ExecuteInEditor, Component.
 
 
 
+	/// <summary>World-space AABB enclosing the river ribbon — used for frustum culling.</summary>
+	public BBox GetWorldBounds()
+	{
+		if (m_Samples.Count == 0)
+			return new BBox(WorldPosition, WorldPosition);
+
+		Vector3 min = m_Samples[0].Position;
+		Vector3 max = min;
+
+		for (int i = 1; i < m_Samples.Count; i++)
+		{
+			min = Vector3.Min(min, m_Samples[i].Position);
+			max = Vector3.Max(max, m_Samples[i].Position);
+		}
+
+		// Widen for the channel half-width, then drop the floor by the river depth
+		BBox bounds = new BBox(min, max).Grow(Width * 0.5f);
+
+		Vector3 mins = bounds.Mins;
+		mins.z -= Depth;
+
+		return new BBox(mins, bounds.Maxs);
+	}
+
+
+
 	// ─────────────────────────────────────────────────────────────────────────
 	// Gizmos
 	// ─────────────────────────────────────────────────────────────────────────

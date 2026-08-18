@@ -22,13 +22,31 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 
 	[Property(Title = "Underwater Volume"), Group("Post Processing")] public PostProcessVolume UnderwaterPostProcessVolume { get; set; }
 
+	// Skips the whole compute + draw for any bounded water surface (pools, rivers) whose
+	// bounds fall outside the camera frustum. The single biggest win when a scene has many
+	// separate WaterQuads scattered around. Infinite oceans (WaterBodyRenderer) are never culled.
+	[Property(Title = "Frustum Culling"), Group("Performance")] public bool EnableFrustumCulling { get; set; } = true;
+	// Extra slack (world units) added to each surface's bounds before the frustum test, so
+	// surfaces at the screen edge don't pop when the camera turns quickly.
+	[Property(Title = "Cull Padding"), Group("Performance")] public float CullPadding { get; set; } = 256.0f;
+	// Beyond this distance (world units, measured to the nearest point of a surface's bounds)
+	// the surface is skipped entirely. 0 = no distance limit. Independent of frustum culling.
+	[Property(Title = "Max Render Distance"), Group("Performance")] public float MaxRenderDistance { get; set; } = 25000.0f;
+
 	private ComputeShader m_ComputeShader;
 
 	private CommandList m_CommandList = new("Water Rendering");
 
 	private CameraComponent m_LastCamera;
 	private Vector3 m_CameraPosition;
+	private Frustum m_CullFrustum;
+	private bool m_HasCullFrustum;
 	private WaterDefinition m_DefaultProfile;
+
+	// Rebuilt each RenderAll: the bounded surfaces that survived frustum culling. Reused
+	// across the compute / barrier / draw phases so the decision is made exactly once.
+	private readonly List<WaterQuad> m_VisibleQuads = [];
+	private readonly List<WaterFlow> m_VisibleFlows = [];
 
 	private List<WaterQuad> Quads { get; } = [];
 	private List<WaterBodyRenderer> QuadRenderers { get; } = [];
@@ -181,15 +199,62 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 	
 	
 	
+	/// <summary>
+	/// Whether a bounded water surface should render this frame: inside the cull camera's
+	/// frustum and within the max render distance. Returns true — render it — when there's
+	/// no viewer, or when both culls are disabled.
+	/// </summary>
+	private bool IsRenderVisible(BBox worldBounds)
+	{
+		// Both culls need a viewer; without one, don't cull anything.
+		if (!m_HasCullFrustum)
+			return true;
+
+		// Distance cull — measured to the nearest point of the bounds, so a large surface
+		// whose centre is far but edge is near still renders.
+		if (MaxRenderDistance > 0.0f)
+		{
+			float distSq = worldBounds.ClosestPoint(m_CameraPosition).DistanceSquared(m_CameraPosition);
+
+			if (distSq > MaxRenderDistance * MaxRenderDistance)
+				return false;
+		}
+
+		// Frustum cull
+		if (EnableFrustumCulling && !m_CullFrustum.IsInside(worldBounds.Grow(CullPadding), partially: true))
+			return false;
+
+		return true;
+	}
+
+
+
 	private void RenderAll(SceneObject _)
 	{
 		if (Graphics.LayerType != SceneLayerType.Translucent)
 			return;
-		
+
 		m_CommandList.Reset();
+
+		// Frustum-cull the bounded surfaces once, up front. The compute / barrier / draw
+		// phases below all iterate these lists, so a culled surface pays for nothing.
+		m_VisibleQuads.Clear();
+		foreach (var quad in Quads)
+		{
+			if (quad.IsValid() && quad.ParticipatesInRendering && IsRenderVisible(quad.GetWorldBounds2D()))
+				m_VisibleQuads.Add(quad);
+		}
+
+		m_VisibleFlows.Clear();
+		foreach (var flow in Flows)
+		{
+			if (flow.IsValid() && flow.ParticipatesInRendering && IsRenderVisible(flow.GetWorldBounds()))
+				m_VisibleFlows.Add(flow);
+		}
 
 		bool hasAnythingToRender = false;
 
+		// Renderers are the infinite ocean surfaces — never culled (their bounds are "everywhere")
 		foreach (var renderer in QuadRenderers)
 		{
 			if (!renderer.IsValid() || !renderer.ParticipatesInRendering)
@@ -198,24 +263,16 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 			hasAnythingToRender = true;
 			renderer.RecordCompute(m_CommandList, m_ComputeShader, m_CameraPosition);
 		}
-		
-		foreach (var quad in Quads)
-		{
-			if (!quad.IsValid() || !quad.ParticipatesInRendering)
-				continue;
 
+		foreach (var quad in m_VisibleQuads)
+		{
 			hasAnythingToRender = true;
 			quad.RecordCompute(m_CommandList, m_ComputeShader, m_CameraPosition);
 		}
-		
-		// Flows build their mesh on the CPU (no compute pass or barrier needed)
-		foreach (var flow in Flows)
-		{
-			if (!flow.IsValid() || !flow.ParticipatesInRendering)
-				continue;
 
+		// Flows build their mesh on the CPU (no compute pass or barrier needed)
+		if (m_VisibleFlows.Count > 0)
 			hasAnythingToRender = true;
-		}
 
 		if (hasAnythingToRender)
 		{
@@ -227,13 +284,8 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 				renderer.BarrierTransition(m_CommandList);
 			}
 
-			foreach (var quad in Quads)
-			{
-				if (!quad.IsValid() || !quad.ParticipatesInRendering)
-					continue;
-
+			foreach (var quad in m_VisibleQuads)
 				quad.BarrierTransition(m_CommandList);
-			}
 
 			m_CommandList.Attributes.GrabFrameTexture("FrameBufferCopyTexture");
 
@@ -244,22 +296,12 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 
 				renderer.Draw(m_CommandList);
 			}
-			
-			foreach (var quad in Quads)
-			{
-				if (!quad.IsValid() || !quad.ParticipatesInRendering)
-					continue;
 
+			foreach (var quad in m_VisibleQuads)
 				quad.Draw(m_CommandList);
-			}
-			
-			foreach (var flow in Flows)
-			{
-				if (!flow.IsValid() || !flow.ParticipatesInRendering)
-					continue;
 
+			foreach (var flow in m_VisibleFlows)
 				flow.Draw(m_CommandList);
-			}
 		}
 	}
 	
@@ -275,16 +317,20 @@ public partial class WaterManager : Component, Component.ExecuteInEditor, Compon
 
 		UpdateCommandListRegistration();
 
-		if (Game.IsPlaying)
+		// The camera we cull and centre the clipmap against: the game camera while playing,
+		// otherwise the editor viewport camera so culling follows what you're actually looking at.
+		CameraComponent cullCamera = Game.IsPlaying ? Scene.Camera : Application.Editor?.Camera;
+
+		if (cullCamera.IsValid())
 		{
-			m_CameraPosition = Scene.Camera?.WorldPosition ?? Vector3.Zero;
+			m_CameraPosition = cullCamera.WorldPosition;
+			m_CullFrustum = cullCamera.GetFrustum();
+			m_HasCullFrustum = true;
 		}
 		else
 		{
-			// Guarded: with no camera in the scene at all this used to dereference straight through
-			// Application.Editor.Camera and throw.
-			var editorCamera = Application.Editor?.Camera;
-			m_CameraPosition = editorCamera.IsValid() ? editorCamera.WorldPosition : Vector3.Zero;
+			m_CameraPosition = Vector3.Zero;
+			m_HasCullFrustum = false;
 		}
 
 		if (UnderwaterPostProcessVolume.IsValid())
